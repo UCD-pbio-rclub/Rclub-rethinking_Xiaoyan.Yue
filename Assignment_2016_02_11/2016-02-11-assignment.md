@@ -9,7 +9,7 @@ Name:Xiaoyan Yue
 (3)
 
 ## 2E3
-(1)
+(1) and (4)
 
 ## 2E4
 it means that the world is probably consist of 70% water and 30% land, but this can not be sure to be the reality.
