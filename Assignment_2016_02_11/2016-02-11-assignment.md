@@ -72,6 +72,50 @@ mtext("7 points")
 
 ![Plot result](https://drive.google.com/a/ucdavis.edu/file/d/0B0jaB6qWXt99S3lEekFScm1sS3M/view)
 ##2M2
+>(1)
+```
+p_grid <- seq( from=0, to=1, length.out = 3)
+prior<-ifelse(p_grid<0.5, 0, 1)
+likelihood <- dbinom(3, size=9, prob = p_grid)
+unstd.posterior <- likelihood*prior
+posterior<- unstd.posterior / sum(unstd.posterior)
+png("Homework_2M2_1.png")
+plot(p_grid,posterior,type="b",
+     xlab="probability of water", ylab = "posterior probability",
+     ylim = c(0,1))
+mtext("3 points")
+dev.off()
+```
+
+>(2)
+```
+p_grid <- seq( from=0, to=1, length.out = 4)
+prior<-ifelse(p_grid<0.5, 0, 1)
+likelihood <- dbinom(4, size=9, prob = p_grid)
+unstd.posterior <- likelihood*prior
+posterior<- unstd.posterior / sum(unstd.posterior)
+png("Homework_2M2_2.png")
+plot(p_grid,posterior,type="b",
+     xlab="probability of water", ylab = "posterior probability",
+     ylim = c(0,1))
+mtext("4 points")
+dev.off()
+```
+
+>(3)
+```
+p_grid <- seq( from=0, to=1, length.out = 7)
+prior<-ifelse(p_grid<0.5, 0, 1)
+likelihood <- dbinom(7, size=9, prob = p_grid)
+unstd.posterior <- likelihood*prior
+posterior<- unstd.posterior / sum(unstd.posterior)
+png("Homework_2M2_3.png")
+plot(p_grid,posterior,type="b",
+     xlab="probability of water", ylab = "posterior probability",
+     ylim = c(0,1))
+mtext("7 points")
+dev.off()
+```
 
 ##2M5
 
