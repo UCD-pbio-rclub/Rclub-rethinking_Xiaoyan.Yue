@@ -3,6 +3,10 @@
 __Name:__Xiaoyan Yue__
 
 
+install.packages(c("coda","mvtnorm","devtools"))
+library(devtools)
+devtools::install_github("rmcelreath/rethinking")
+library(rethinking)
 
 ```{r}
 library(ggplot2)
@@ -16,18 +20,19 @@ set.seed(100)
 samples <- sample(p_grid, prob=posterior, size=1e4, replace = TRUE)
 plot(samples)
 qplot(samples)
+dens(samples)
 ```
 ## 3E1 How much posterior probability lies below p = 0.2?
 ```{r}
-sum(posterior[p_grid < 0.2])
+sum(samples < 0.2)/1e4
 ```
 ## 3E2 How much posterior probability lies above p = 0.8?
 ```{r}
-sum(posterior[p_grid > 0.8])
+sum(samples > 0.8)/1e4
 ```
 ## 3E3 How much posterior probability lies between p = 0.2 and p = 0.8?
 ```{r}
-sum(posterior[p_grid > 0.2 & p_grid < 0.8])
+sum(samples > 0.2 & samples < 0.8)/1e4
 ```
 ## 3E4 20% of the posterior probability lies below which value of p?
 ```{r}
@@ -69,17 +74,75 @@ HPDI(samples, 0.9)
 _STOP AFTER 3M2 FOR 02/25 ASSIGNMENT_
 
 ## 3M3
+```{r}
+w <- rbinom(1e5, size=15,prob=samples)
+sum(w==8)/1e4
+```
 
 ## 3M4
-
+```{r}
+w <- rbinom(1e5, size=9,prob=samples)
+sum(w==6)/1e5
+```
 ## 3M5
+####prior is zero below p=0.5 and a constant above p=0.5
+```{r}
+p_grid <- seq(from=0, to=1, length.out = 1000)
+prior <- ifelse(p_grid < 0.5, 0, 1)
+likelihood <- dbinom(8, size=15, prob=p_grid)
+posterior <-likelihood * prior
+posterior <- posterior / sum(posterior)
+set.seed(100)
+##simulate the distribution of samples
+samples <- sample(p_grid, prob=posterior, size=1e4, replace = TRUE)
+##what is the probility of observing 8 water in 15 tosses
+w <- rbinom(1e5, size=15,prob=samples)
+sum(w==8)/1e5
+##what is probility of observing 6 water in 9 tosses
+w <- rbinom(1e5, size=9,prob=samples)
+sum(w==6)/1e5
+```
 
 ## 3H1
+library(rethinking)
+data(homeworkch3)
+sum(birth1) + sum(birth2)
+```{R}
+p_grid <- seq(from=0, to=1, length.out = 1000)
+prior <-rep(1,1000)
+likelihood <- dbinom(111, size=200, prob=p_grid)
+posterior <-likelihood * prior
+posterior <- posterior / sum(posterior)
+posterior
+p_grid[which.max(posterior)]
+```
 
 ## 3H2
-
+```{r}
+samples <- sample(p_grid, prob=posterior, size=1e4, replace = TRUE)
+HPDI(samples, prob = 0.5)
+HPDI(sampels, prob = 0.89)
+HPDI(samples, prob = 0.97)
+```
 ## 3H3
-
+```{r}
+birth_boy <- rbinom(1e4,size=200,prob=samples)
+simplehist( birth_boy , xlab="birth boy count" )
+sum(birth_boy==111)/1e4
+dens(birth_boy)
+```
 ## 3H4
-
+```{r}
+sum(birth1)
+p_grid <- seq(from=0, to=1, length.out = 1000)
+prior <-rep(1,1000)
+likelihood <- dbinom(51, size=100, prob=p_grid)
+posterior <-likelihood * prior
+posterior <- posterior / sum(posterior)
+posterior
+samples <- sample(p_grid, prob=posterior, size=1e4, replace = TRUE)
+birth1_boy <- rbinom(1e4,size=100,prob=samples)
+sum(birth1_boy==51)/1e4
+dens(samples)
+```
 ## 3H5
