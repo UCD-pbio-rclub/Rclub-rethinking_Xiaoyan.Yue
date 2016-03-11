@@ -3,12 +3,11 @@
 __Name:__Xiaoyan Yue__
 
 
+```{r}
 install.packages(c("coda","mvtnorm","devtools"))
 library(devtools)
 devtools::install_github("rmcelreath/rethinking")
 library(rethinking)
-
-```{r}
 library(ggplot2)
 library(devtools)
 p_grid <- seq(from=0, to=1, length.out = 1000)
