@@ -28,9 +28,9 @@ Pr(black)=1/2(the probability of black sides)
 So,Pr(black|black)=(1/3)/(1/2)=2/3
 
 ##2M1
->(1)
+>###(1)WWW
 ```
-p_grid <- seq( from=0, to=1, length.out = 3)
+p_grid <- seq( from=0, to=1, length.out = 20)
 prior<-rep(1,3)
 likelihood <- dbinom(3, size=9, prob = p_grid)
 unstd.posterior <- likelihood*prior
@@ -57,7 +57,7 @@ mtext("4 points")
 
 ![Plot result](https://drive.google.com/a/ucdavis.edu/file/d/0B0jaB6qWXt99UXdfUk1ncVlfQnM/view)
 
->(3)
+>###(3)LWWLWWW
 ```
 p_grid <- seq( from=0, to=1, length.out = 7)
 prior<-c(0,1,1,0,1,1,1)
@@ -119,8 +119,11 @@ dev.off()
 
 ##2M5
 Pr(B|B)=Pr(B,B)/Pr(B)
- Pr(B,B)=2/4=1/2
- Pr(B)=5/8
+
+Pr(B,B)=2/4=1/2
+
+Pr(B)=5/8
+
 Pr(B|B)=4/5
 ##2M6
 
