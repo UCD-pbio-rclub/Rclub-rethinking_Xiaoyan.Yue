@@ -104,10 +104,10 @@ sum(w==6)/1e5
 ```
 
 ## 3H1
+```{R}
 library(rethinking)
 data(homeworkch3)
 sum(birth1) + sum(birth2)
-```{R}
 p_grid <- seq(from=0, to=1, length.out = 1000)
 prior <-rep(1,1000)
 likelihood <- dbinom(111, size=200, prob=p_grid)
@@ -143,6 +143,6 @@ posterior
 samples <- sample(p_grid, prob=posterior, size=1e4, replace = TRUE)
 birth1_boy <- rbinom(1e4,size=100,prob=samples)
 sum(birth1_boy==51)/1e4
-dens(samples)
+dens(birth1_boy)
 ```
 ## 3H5
