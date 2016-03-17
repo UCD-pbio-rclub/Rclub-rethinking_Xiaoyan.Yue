@@ -6,26 +6,32 @@ __Name:__Xiaoyan Yue
 # For 03/17/16
 
 ## 4E1
-yi~Normal(¦Ì,¦Ò)
+yi~Normal(mu,sigma)
 ## 4E2
 2
 ## 4E3
-¦Ì <- rnorm( 1e4 , 178 , 20 ) 
-¦Ò <- runif( 1e4 , 0 , 50 )
-prior<- rnorm( 1e4 , ¦Ì , ¦Ò )
+```{r}
+mu <- rnorm( 1e4 , 178 , 20 ) 
+sigma <- runif( 1e4 , 0 , 50 )
+prior<- rnorm( 1e4 , mu , sigma )
 dens(prior)
+```
 ## 4M1
+```{r}
 sample_mu <- rnorm( 1e4 , 0 , 10 ) 
 sample_sigma <- runif( 1e4 , 0 , 10 )
 prior_h <- rnorm( 1e4 , sample_mu , sample_sigma )
 dens( prior_h )
+```
 ## 4M2
+```{r}
 flist <- alist(
   height ~ dnorm( mu , sigma ) ,
   mu ~ dnorm( 0 , 10 ) ,
   sigma ~ dunif( 0 , 10 )
 )
 m4.1 <- map( flist , data=d2 )
+```
 # For 03/24/16
 
 ## 4E4
