@@ -29,6 +29,6 @@ p <- c(0.20,0.25,0.25,0.30 )
 ```
 ##6E4 Suppose another four-sided die is loaded such that it never shows ¡°4¡±. The other three sides show equally often. What is the entropy of this die?
 ```{r}
-p <- c(0.33,0.33,0.33,0 )
+p <- c(1/3,1/3,1/3)
 -sum( p*log(p) )
 ```
