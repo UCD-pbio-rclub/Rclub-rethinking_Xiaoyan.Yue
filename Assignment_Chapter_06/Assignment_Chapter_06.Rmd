@@ -61,3 +61,126 @@ ll <- sapply( 1:n_samples , # X, a list from 1 to 1000 observations
               } )
 ```
 
+##6H1. Compare the models above, using WAIC. Compare the model rankings, as well as the WAIC weights.
+
+```{r}
+library(rethinking)
+data(Howell1)
+d <- Howell1
+d$age <- (d$age - mean(d$age))/sd(d$age)
+set.seed( 1000 )
+i <- sample(1:nrow(d),size=nrow(d)/2)
+d1 <- d[ i , ]
+d2 <- d[ -i , ]
+
+M1 <- map(
+alist(
+height ~ dnorm( mu , sigma),
+mu <- a + b1*age,
+a ~ dnorm(mean(height),50),
+b1 ~ dnorm(0,10),
+sigma ~ dunif(0,20)),
+data = d1)
+
+M2 <- map(
+alist(
+height ~ dnorm( mu , sigma),
+mu <- a + b1*age + b2*age^2,
+a ~ dnorm(mean(height),50),
+b1 ~ dnorm(0,10),
+b2 ~ dnorm(0,10),
+sigma ~ dunif(0,20)),
+data = d1)
+
+M3 <- map(
+alist(
+height ~ dnorm( mu , sigma),
+mu <- a + b1*age + b2*age^2 + b3*age^3,
+a ~ dnorm(mean(height),50),
+b1 ~ dnorm(0,10),
+b2 ~ dnorm(0,10),
+b3 ~ dnorm(0,10),
+sigma ~ dunif(0,20)),
+data = d1)
+
+M4 <- map(
+alist(
+height ~ dnorm( mu , sigma),
+mu <- a + b1*age + b2*age^2 + b3*age^3 + b4*age^4,
+a ~ dnorm(mean(height),50),
+b1 ~ dnorm(0,10),
+b2 ~ dnorm(0,10),
+b3 ~ dnorm(0,10),
+b4 ~ dnorm(0,10),
+sigma ~ dunif(0,20)),
+data = d1)
+
+M5 <- map(
+alist(
+height ~ dnorm( mu , sigma),
+mu <- a + b1*age + b2*age^2 + b3*age^3 + b4*age^4 + b5*age^5,
+a ~ dnorm(mean(height),50),
+b1 ~ dnorm(0,10),
+b2 ~ dnorm(0,10),
+b3 ~ dnorm(0,10),
+b4 ~ dnorm(0,10),
+b5 ~ dnorm(0,10),
+sigma ~ dunif(0,20)),
+data = d1)
+
+M6 <- map(
+alist(
+height ~ dnorm( mu , sigma),
+mu <- a + b1*age + b2*age^2 + b3*age^3 + b4*age^4 + b5*age^5 + b6*age^6,
+a ~ dnorm(mean(height),50),
+b1 ~ dnorm(0,10),
+b2 ~ dnorm(0,10),
+b3 ~ dnorm(0,10),
+b4 ~ dnorm(0,10),
+b5 ~ dnorm(0,10),
+b6 ~ dnorm(0,10),
+sigma ~ dunif(0,20)),
+data = d1)
+
+height.models <- compare(M1,M2,M3,M4,M5,M6)
+height.models
+```
+
+##6H2. For each model, produce a plot with model averaged mean and 97% confidence interval of the mean, superimposed on the raw data. How do predictions differ across models?
+```{r}
+summary(d1)
+
+age.seq <- seq(from = -2, to = 3,length.out = 300)
+
+d1.predict <- list(
+height = rep(0,300),
+age = age.seq
+)
+
+pred.M1 <- link(M1, data=d1.predict)
+mu <- apply(pred.M1,2,mean)
+mu.PI <- apply(pred.M1,2,PI,prob=0.97)
+
+# plot it all
+plot(height ~ age, d1, col=rangi2)
+lines(age.seq,mu,lty=2)
+lines(age.seq,mu.PI[1,],lty=2)
+lines(age.seq,mu.PI[2,],lty=2)
+```
+
+```{r}
+models.ensemble <- ensemble(M1,M2,M3,M4,M5,M6,data=d1.predict)
+mu <- apply(models.ensemble$link,2,mean)
+mu.PI <- apply(models.ensemble$link,2,PI)
+lines(age.seq,mu)
+shade(mu.PI,age.seq)
+???
+```
+##6H3. Now also plot the model averaged predictions, across all models. In what ways do the averaged predictions differ from the predictions of the model with the lowest WAIC value?
+
+##6H4. Compute the test-sample deviance for each model. This means calculating deviance, but using the data in d2 now. You can compute the log-likelihood of the height data with: sum( dnorm( d2$height , mu , sigma , log=TRUE ) ),where mu is a vector of predicted means (based upon age values and MAP parameters) and sigma is the MAP standard deviation.
+
+##6H5. Compare the deviances from 6H4 to the WAIC values. It might be easier to compare if you subtract the smallest value in each list from the others. For example, subtract the minimum WAIC from all of the WAIC values so that the best WAIC is normalized to zero. Which model makes the best out-of-sample predictions in this case? Does WAIC do a good job of estimating the test deviance?
+
+##6H6. 
+
