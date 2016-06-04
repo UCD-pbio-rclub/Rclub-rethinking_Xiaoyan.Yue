@@ -1,0 +1,166 @@
+---
+title: "Assignment_Chapter_07"
+author: "XIAOYAN YUE"
+date: "06/04/2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+###7E1. For each of the causal relationships below, name a hypothetical third variable that would lead to an interaction effect.
+
+####(1) Bread dough rises because of yeast.
+time, temperature
+
+####(2) Education leads to higher income.
+family background,country
+
+####(3) Gasoline makes a car go.
+physical situation of the car
+
+###7E2. Which of the following explanations invokes an interaction?
+(2)and (3)
+
+###7E3. For each of the explanations in 7E2, write a linear model that expresses the stated relationship.
+(1)caramelized ~ Normal(mu,sigma)
+
+mu = a + b_h*heat + b_w*water+ b_hw*heat*water
+
+(2)car_faster ~ Normal(mu,sigma)
+
+mu = a + b_c*cylinder + b_f*fuel_injector + b_cf*cylinder*fuel_injector
+
+(3)politicol_beliefs ~ Normal(mu,sigma)
+
+mu = a + b_p*parent_beliefs + b_f*friends_beliefs + b_pf*parent_beliefs*frends_beliefs
+
+(4)intelligent_animal ~ Normal(mu,sigma)
+
+mu = a + b_s*social+b_a*appendages + b_sa*social*appendages
+
+###7M1
+Under hot temperature, at any water and light conditionsno tupips could grow blooms. 
+
+###7M2
+temperature <- c(0,1)
+
+bloom_size ~ water*shade*temperature
+
+###7M3
+```{r}
+##invent a set of data? not just creat a model?
+```
+
+###7H1
+```{r}
+library(rethinking)
+data(tulips)
+d <- tulips
+
+##make centered verison of shade and water
+d$shade.c <- d$shade - mean(d$shade)
+d$water.c <- d$water - mean(d$water)
+
+#set the dummy variable for the data
+d$bed_a <- ifelse(d$bed=="a",1,0)
+d$bed_b <- ifelse(d$bed=="b",1,0)
+d$bed_c <- ifelse(d$bed=="c",1,0)
+
+##creat the model
+m.7H1 <- map(
+  alist(
+    blooms ~ dnorm( mu , sigma ) ,
+    mu <- a + bW*water.c + bS*shade.c + bWS*water.c*shade.c + bA*bed_a + bB*bed_b + bC*bed_c, 
+    a ~ dnorm( 130 , 100 ) ,
+    bW ~ dnorm( 0 , 100 ) ,
+    bS ~ dnorm( 0 , 100 ) ,
+    bWS ~ dnorm( 0 , 100 ) ,
+    bA ~ dnorm( 0, 1 ),
+    bB ~ dnorm( 0, 1 ),
+    bC ~ dnorm( 0, 1),#set the prior for the added parameter
+    sigma ~ dunif( 0 , 100 )
+  ) ,
+  data=d ,
+  start=list(a=mean(d$blooms),bW=0,bS=0,bWS=0,bA=0,bB=0,bC=0,sigma=sd(d$blooms)) )
+precis(m.7H1)
+```
+
+####7H2
+```{r}
+#fit the model omited bed
+m.7H2 <- map(
+  alist(
+    blooms ~ dnorm( mu , sigma ) ,
+    mu <- a + bW*water.c + bS*shade.c + bWS*water.c*shade.c ,
+    a ~ dnorm( 130 , 100 ) ,
+    bW ~ dnorm( 0 , 100 ) ,
+    bS ~ dnorm( 0 , 100 ) ,
+    bWS ~ dnorm( 0 , 100 ) ,
+    sigma ~ dunif( 0 , 100 )
+  ) ,
+  data=d ,
+  start=list(a=mean(d$blooms),bW=0,bS=0,bWS=0,sigma=sd(d$blooms)) )
+
+compare(m.7H1,m.7H2)#compare these two models using WAIC
+```
+It seems the bed variable did not effect the outcomes in this study.
+
+```{r}
+#what means reconcile the WAIC results?
+```
+
+####7H3
+```{r}
+library(rethinking)
+data(rugged)
+d <- rugged
+
+# make log version of outcome
+d$log_gdp <- log( d$rgdppc_2000 )
+# extract countries with GDP data
+dd <- d[ complete.cases(d$rgdppc_2000) , ]
+
+#(a) using map to fit just the interaction model without country Seychelles
+
+# extract country Seychelles
+dd1 <- dd[dd$country!="Seychelles",]
+#fit the model
+m.7H3_1 <- map(
+  alist(
+    log_gdp ~ dnorm( mu , sigma ) ,
+    mu <- a + bR*rugged + bAR*rugged*cont_africa + bA*cont_africa,
+    a ~ dnorm( 8 , 100 ) ,
+    bA ~ dnorm( 0 , 1 ) ,
+    bR ~ dnorm( 0 , 1 ) ,
+    bAR ~ dnorm( 0 , 1 ) ,
+    sigma ~ dunif( 0 , 10 )
+  ) ,
+  data=dd1 )
+
+#using the same model fit to the full data
+m.7H3_2 <- map(
+  alist(
+    log_gdp ~ dnorm( mu , sigma ) ,
+    mu <- a + bR*rugged + bAR*rugged*cont_africa + bA*cont_africa,
+    a ~ dnorm( 8 , 100 ) ,
+    bA ~ dnorm( 0 , 1 ) ,
+    bR ~ dnorm( 0 , 1 ) ,
+    bAR ~ dnorm( 0 , 1 ) ,
+    sigma ~ dunif( 0 , 10 )
+  ) ,
+  data=dd )
+#compare the inference of two models
+precis(m.7H3_1)
+precis(m.7H3_2)
+
+#it seems the only difference is the interaction effect is smaller in the model without country Seychelles
+```
+
+(b)plot the posterior predictions for above two models
+```{r}
+#set the value of rugged
+rugged.seq <- seq(from=-1,to=8,by=0.25)
+# compute mu over samples for data without country Seychelles and the full data
+```
+TO BE DONE SOON
+
+
