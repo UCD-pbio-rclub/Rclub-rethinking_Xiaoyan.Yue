@@ -1,0 +1,97 @@
+---
+title: "Assignment_Chapter_08"
+author: "XIAOYAN YUE"
+date: "6/11/2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+###8E1.Which of the following is a requirement of the simple Metropolis algorithm?
+(3) The proposal distribution must be symmetric.  
+###8E2.Gibbs sampling is more efficient than the Metropolis algorithm. How does it achieve this extra efficiency? Are there any limitations to the Gibbs sampling strategy?  
+The improvement of Gibbs sampling arises from adaptive proposals, which depends upon using conjugate pairs allowing Gibbs sampling to make smart jumps around the joint posterior distribution of all parameters, so the distribution of proposed parameter values can adjust itself intelligently and we can get a good estimate of the posterior from Gibbs sampling with many fewer samples than a comparaple Metropolis approach.  
+Limitations: (1)some conjugate priors seem silly. (2)As models become more complex and contain hundreds or thousands or tens of thousands of parameters, Gibbs sampling becomes shockingly inefficient.  
+###8E3.Which sort of parameters can Hamiltonian Monte Carlo not handle?  
+The discrete parameters.  
+###8E4.Explain the difference between the effective number of samples, n_eff as calculated by Stan, and the actual number of samples.  
+n_eff is a crude estimate of the number of independent samples you managed to get  
+###8E5.Which value should Rhat approach, when a chain is sampling the posterior distribution correctly?  
+Rhat should approach 1.00 in a healthy set of chains.  
+###8E6.Sketch a good trace plot for a Markov chain, one that is effectively sampling from the posterior distribution. What is good about its shape? Then sketch a trace plot for a malfunctioning Markov chain. What about its shape indicates malfunction?  
+
+###8M1.
+```{r}
+library(rethinking)
+data(rugged)
+d <- rugged
+d$log_gdp <- log(d$rgdppc_2000)
+dd <- d[ complete.cases(d$rgdppc_2000) , ]
+
+## trim the data
+dd.trim <- dd[ , c("log_gdp","rugged","cont_africa") ]
+str(dd.trim)
+
+## make the model by a uniform prior
+m8.M1stan_unif <- map2stan(
+  alist(
+    log_gdp ~ dnorm( mu , sigma ) ,
+    mu <- a + bR*rugged + bA*cont_africa + bAR*rugged*cont_africa ,
+    a ~ dnorm(0,100),
+    bR ~ dnorm(0,10),
+    bA ~ dnorm(0,10),
+    bAR ~ dnorm(0,10),
+    sigma ~ dunif(0,2)
+  ) ,
+  data=dd.trim )
+
+#### make a model by an exponential prior
+m8.M1stan_exp <- map2stan(
+  alist(
+    log_gdp ~ dnorm( mu , sigma ) ,
+    mu <- a + bR*rugged + bA*cont_africa + bAR*rugged*cont_africa ,
+    a ~ dnorm(0,100),
+    bR ~ dnorm(0,10),
+    bA ~ dnorm(0,10),
+    bAR ~ dnorm(0,10),
+    sigma ~ dexp(1)
+  ) ,
+  data=dd.trim )
+
+## test the model
+precis(m8.M1stan_unif)
+precis(m8.M1stan_exp)
+```
+###8M2.
+```{r}
+## make the model by a stronger uniform prior
+m8.M2stan_unif <- map2stan(
+  alist(
+    log_gdp ~ dnorm( mu , sigma ) ,
+    mu <- a + bR*rugged + bA*cont_africa + bAR*rugged*cont_africa ,
+    a ~ dnorm(0,100),
+    bR ~ dnorm(0,10),
+    bA ~ dnorm(0,10),
+    bAR ~ dnorm(0,10),
+    sigma ~ dunif(0,0.5)
+  ) ,
+  data=dd.trim )
+
+#### make a model by a stronger exponential prior
+m8.M2stan_exp <- map2stan(
+  alist(
+    log_gdp ~ dnorm( mu , sigma ) ,
+    mu <- a + bR*rugged + bA*cont_africa + bAR*rugged*cont_africa ,
+    a ~ dnorm(0,100),
+    bR ~ dnorm(0,10),
+    bA ~ dnorm(0,10),
+    bAR ~ dnorm(0,10),
+    sigma ~ dexp(5)
+  ) ,
+  data=dd.trim )
+
+## test the model
+precis(m8.M2stan_unif)
+precis(m8.M2stan_exp)
+```
+###8M3.
