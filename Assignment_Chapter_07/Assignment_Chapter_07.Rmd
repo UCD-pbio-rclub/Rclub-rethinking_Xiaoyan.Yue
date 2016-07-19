@@ -78,6 +78,7 @@ m.7H1 <- map(
   data=d ,
   start=list(a=mean(d$blooms),bW=0,bS=0,bWS=0,bA=0,bB=0,bC=0,sigma=sd(d$blooms)) )
 precis(m.7H1)
+plot(precis(m.7H1))
 ```
 
 ####7H2
@@ -323,6 +324,8 @@ m.1.1 <- map(
   ) ,
   data=d )
 precis(m.1.1)
+
+plot(precis(m.1.1))
 
 #plot postrior predictions
 mean.growing.season.seq <- seq(from=-1,to=13,length.out = 50)
