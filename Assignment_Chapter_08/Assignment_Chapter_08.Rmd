@@ -95,3 +95,162 @@ precis(m8.M2stan_unif)
 precis(m8.M2stan_exp)
 ```
 ###8M3.
+
+###8H1.
+```{r}
+mp <- map2stan(
+alist(
+a ~ dnorm(0,1),
+b ~ dcauchy(0,1)
+),
+data=list(y=1),
+start=list(a=0,b=0),
+iter=1e4, warmup=100 , WAIC=FALSE )
+
+precis(mp)
+plot(mp)
+
+```
+
+###8H2.
+```{r}
+# load data
+library(rethinking)
+data(WaffleDivorce)
+d <- WaffleDivorce
+# standardize predictor
+d$MedianAgeMarriage.s <- (d$MedianAgeMarriage-mean(d$MedianAgeMarriage))/
+sd(d$MedianAgeMarriage)
+# fit model by map
+m5.1 <- map(
+alist(
+Divorce ~ dnorm( mu , sigma ) ,
+mu <- a + bA * MedianAgeMarriage.s ,
+a ~ dnorm( 10 , 10 ) ,
+bA ~ dnorm( 0 , 1 ) ,
+sigma ~ dunif( 0 , 10 )
+) , data = d )
+
+
+d$Marriage.s <- (d$Marriage - mean(d$Marriage))/sd(d$Marriage)
+m5.2 <- map(
+alist(
+Divorce ~ dnorm( mu , sigma ) ,
+mu <- a + bR * Marriage.s ,
+a ~ dnorm( 10 , 10 ) ,
+bR ~ dnorm( 0 , 1 ) ,
+sigma ~ dunif( 0 , 10 )
+) , data = d )
+
+
+m5.3 <- map(
+alist(
+Divorce ~ dnorm( mu , sigma ) ,
+mu <- a + bR*Marriage.s + bA*MedianAgeMarriage.s ,
+a ~ dnorm( 10 , 10 ) ,
+bR ~ dnorm( 0 , 1 ) ,
+bA ~ dnorm( 0 , 1 ) ,
+sigma ~ dunif( 0 , 10 )
+) ,
+data = d )
+
+##fit the model by map2stan
+m5.1stan <- map2stan(
+alist(
+Divorce ~ dnorm( mu , sigma ) ,
+mu <- a + bA * MedianAgeMarriage.s ,
+a ~ dnorm( 10 , 10 ) ,
+bA ~ dnorm( 0 , 1 ) ,
+sigma ~ dunif( 0 , 10 )
+) , data = d )
+
+
+d$Marriage.s <- (d$Marriage - mean(d$Marriage))/sd(d$Marriage)
+m5.2stan <- map2stan(
+alist(
+Divorce ~ dnorm( mu , sigma ) ,
+mu <- a + bR * Marriage.s ,
+a ~ dnorm( 10 , 10 ) ,
+bR ~ dnorm( 0 , 1 ) ,
+sigma ~ dunif( 0 , 10 )
+) , data = d )
+
+
+m5.3stan <- map2stan(
+alist(
+Divorce ~ dnorm( mu , sigma ) ,
+mu <- a + bR*Marriage.s + bA*MedianAgeMarriage.s ,
+a ~ dnorm( 10 , 10 ) ,
+bR ~ dnorm( 0 , 1 ) ,
+bA ~ dnorm( 0 , 1 ) ,
+sigma ~ dunif( 0 , 10 )
+) ,
+data = d )
+
+#
+
+compare(m5.1,m5.2,m5.3)
+compare(m5.1stan,m5.2stan,m5.3stan)
+compare(m5.1,m5.1stan)
+compare(m5.2,m5.2stan)
+compare(m5.3,m5.3stan)
+```
+
+###8H3.
+```{r}
+#simulates height and leg length for 100 imagined individuals
+N <- 100 # number of individuals
+height <- rnorm(N,10,2) # sim total height of each
+leg_prop <- runif(N,0.4,0.5) # leg as proportion of height
+leg_left <- leg_prop*height + # sim left leg as proportion + error
+rnorm( N , 0 , 0.02 )
+leg_right <- leg_prop*height + # sim right leg as proportion + error
+rnorm( N , 0 , 0.02 )
+# combine into data frame
+d <- data.frame(height,leg_left,leg_right)
+
+#fit the model
+m5.8s <- map2stan(
+alist(
+height ~ dnorm( mu , sigma ) ,
+mu <- a + bl*leg_left + br*leg_right ,
+a ~ dnorm( 10 , 100 ) ,
+bl ~ dnorm( 2 , 10 ) ,
+br ~ dnorm( 2 , 10 ) ,
+sigma ~ dcauchy( 0 , 1 )
+) ,
+data=d, chains=4,
+start=list(a=10,bl=0,br=0,sigma=1) )
+
+
+#fit the model with a strictly positive prior
+m5.8s2 <- map2stan(
+alist(
+height ~ dnorm( mu , sigma ) ,
+mu <- a + bl*leg_left + br*leg_right ,
+a ~ dnorm( 10 , 100 ) ,
+bl ~ dnorm( 2 , 10 ) ,
+br ~ dnorm( 2 , 10 ) & T[0,] ,
+sigma ~ dcauchy( 0 , 1 )
+) ,
+data=d, chains=4,
+start=list(a=10,bl=0,br=0,sigma=1) )
+
+pairs(m5.8s)
+pairs(m5.8s2)
+
+
+
+```
+###8H4.
+```{r}
+
+precis(m5.8s)
+precis(m5.8s2)
+
+```
+
+###8H5.
+```{r}
+
+```
