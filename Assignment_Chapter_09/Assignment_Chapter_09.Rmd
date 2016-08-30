@@ -1,0 +1,261 @@
+---
+title: "Assignment_Chapter_09"
+author: "XIAOYAN YUE"
+data: "1st/August/2016"
+output: 
+  html_document: 
+    fig_caption: yes
+    keep_md: yes
+---
+
+```{r}
+##load the data and libraries
+setwd("D:/")
+data <- read.csv("TomatoR2CSHL.csv")
+
+library(rethinking)
+library(ggplot2)
+library(reshape2)
+
+#take a look at the data TO figure out if the data are normal distribution 
+head(data)
+summary(data)
+
+#denSity plots
+pl <- ggplot(data = data, aes(x=hyp,fill=trt))
+pl <- pl + geom_density()
+pl <- pl + facet_grid(species ~ trt)
+pl
+
+#box plots
+pl <- ggplot(data = data, aes(y=hyp,x=species,fill=trt))
+pl <- pl + geom_boxplot()
+pl
+
+##data transformation (if the original data are not so normal distribution)
+
+#Square root transformation
+pl <- ggplot(data = data, aes(x=sqrt(hyp),fill=trt))
+pl <- pl + geom_density()
+pl <- pl + facet_grid(species ~ trt)
+pl + ggtitle("sqrt transformed")
+
+#Log2 transformation
+pl <- ggplot(data = data, aes(x=log2(hyp),fill=trt))
+pl <- pl + geom_density()
+pl <- pl + facet_grid(species ~ trt)
+pl + ggtitle("log2 transformed")
+
+
+##except by plotting the data to see if it is normal distribution, we can use normality test by shapiro.test
+by(data$hyp,list(data$trt,data$species),shapiro.test)
+by(sqrt(data$hyp),list(data$trt,data$species),shapiro.test)
+by(log2(data$hyp),list(data$trt,data$species),shapiro.test)
+?by #function 'by' is an object-oriented wrapper for tapply applied to data frame
+
+#so, squrt transformed is the best
+
+#categorical variable for trt
+data$trtL <- ifelse(data$trt=="L",1,0)
+
+#alternative way
+levels(data$trt)
+data$trt2 <- as.numeric(data$trt)-1 #0 = H, 1=L
+
+#################################################
+###what I did for the variables
+#set the dummy variable for the data
+##trt
+#data$trt <- ifelse(dat1$trt=="H",1,0)
+#summary(dat1)
+##species
+#data$species_chilense <- ifelse(dat1$species=="S. chilense",1,0)
+#data$species_chimielewskii <- ifelse(dat1$species=="S. chimielewskii",1,0)
+#data$species_habrochaites <- ifelse(dat1$species=="S. habrochaites",1,0)
+#data$species_pennellii <- ifelse(dat1$species=="S. pennellii",1,0)
+#data$species_peruvianum <- ifelse(dat1$species=="S. peruvianum",1,0)
+###what I did for the variables
+####################################################
+
+#categorical variables for species
+#almost the same thing as the last step, set the dummy variable "species" into different column, which is really useful when you have a lot of species, you can not do it one by one
+data$index <- 1:nrow(data)
+data2 <- dcast(data,index + hyp + trt2 ~ species, value.var = "species",fun.aggregate = length)
+
+head(data2)
+
+#set a model with a prior distribution using map2stan
+##stan needs a "clear data", we must subset the data frame to contain only the relevant columns and get rid of the other variables
+data2.trt <- data2[, c("hyp","trt2")]
+head(data2.trt)
+
+#set the model for hyp and trt
+#trt model
+trt.stan <- map2stan(alist(
+  hyp ~ dnorm(mu,sigma),
+  mu <- a + bT * trt2,
+  a ~ dnorm(0,100),
+  bT ~ dnorm(0,10),
+  sigma ~ dunif(0,20)),
+  data2.trt,
+  chains = 4)
+
+#test the model
+plot(trt.stan)
+precis(trt.stan)
+par(mfrow=c(1,1),mfcol=c(1,1))
+plot(precis(trt.stan))
+
+
+##set the model for hyp and species
+#first, fix species names to get rid of space 
+colnames(data2) <- sub(". ","_",colnames(data2))
+head(data2)
+
+#model where each species has its own intercept
+data2.species.all <- data2[,c(2,4:8)]
+head(data2.species.all)
+
+#set the model for hyp and species
+species.stan <- map2stan(alist(
+  hyp ~ dnorm(mu, sigma),
+  mu <- bChil*S_chilense + bChmi*S_chmielewskii + bHab*S_habrochaites + bPen*S_pennellii + bPer*S_peruvianum,
+  c(bChil, bChmi, bHab, bPen, bPer) ~ dnorm(33.35, 20),
+  sigma ~ dunif(0,20)),
+  data2.species.all,
+  chains = 4)
+
+#test the model
+plot(species.stan)
+precis(species.stan)
+par(mfrow=c(1,1),mfcol=c(1,1))
+plot(precis(species.stan))
+
+#use S. chmi as intercept
+data2.species.intercept <- data2[,c(2,4,6:8)]
+
+head(data2.species.intercept)
+
+
+species.stan.intercept <- map2stan(alist(
+  hyp ~ dnorm(mu,sigma),
+  mu <- a + bChil*S_chilense + bHab*S_habrochaites + bPen * S_pennellii + bPer*S_peruvianum,
+  a ~ dnorm(33.35,10),
+  c(bChil,bHab,bPen,bPer) ~ dnorm(0,10),
+  sigma ~ dunif(0,20)),
+  data2.species.intercept,
+  chains = 4)
+
+#test the model
+plot(species.stan.intercept)
+precis(species.stan.intercept)
+par(mfrow=c(1,1),mfcol=c(1,1))
+plot(precis(species.stan.intercept))
+
+#set the model with species and trt, except the intercept
+
+data2.species.trt <- data2[,c(2:4,6:8)]
+
+head(data2.species.trt)
+
+species.trt.stan <- map2stan(alist(
+  hyp ~ dnorm(mu,sigma),
+  mu <- a + bT*trt2 + bChil*S_chilense + bHab*S_habrochaites + bPen * S_pennellii + bPer*S_peruvianum,
+  a ~ dnorm(33.35,10),
+  c(bT,bChil,bHab,bPen,bPer) ~ dnorm(0,10),
+  sigma ~ dunif(0,20)),
+  data2.species.trt,
+  chains = 4)
+
+plot(species.trt.stan)
+precis(species.trt.stan)
+par(mfrow=c(1,1),mfcol=c(1,1))
+plot(precis(species.trt.stan))
+
+#compare the models
+
+compare(trt.stan,species.trt.stan,species.stan.intercept,species.stan)
+
+plot(compare(trt.stan,species.trt.stan,species.stan.intercept,species.stan))
+
+
+coeftab(trt.stan,species.trt.stan,species.stan.intercept,species.stan)
+
+plot(coeftab(trt.stan,species.trt.stan,species.stan.intercept,species.stan))
+
+#what can we say about the treatment effect?
+
+#get the posterior distribution of bT, the treatment coefficient.
+
+post.bT <- extract.samples(species.trt.stan)$bT
+
+dens(post.bT,show.HPDI = 0.95)
+#the fact that the 95% HDPI intervals are far away from 0 is strong evidence that bT is positive
+
+# what percent of the posterior distribution of bT is less than or equal to ?
+sum(post.bT <= 0) / length(post.bT) 
+# turns out None of the posterior distribution for bT is less than or equal to 0.
+```
+##2a) Redo the tomato hyp analysis (or at least the final model with species and treatment) but using square root transformation.  Are model fits improved?  Does it change the parameter estimates?  
+```{r}
+#set the square root transformation
+data2$hyp_sqrt <- sqrt(data2$hyp)
+
+head(data2)
+
+#set the model with species and trt, except the intercept
+
+data2_sqrt <- data2[,c(3:4,6:9)]
+
+head(data2_sqrt) 
+
+mean(data2_sqrt$hyp_sqrt)
+
+data2_sqrt.stan <- map2stan(alist(
+  hyp_sqrt ~ dnorm(mu,sigma),
+  mu <- a + bT*trt2 + bChil*S_chilense + bHab*S_habrochaites + bPen * S_pennellii + bPer*S_peruvianum,
+  a ~ dnorm(5.7,10),
+  c(bT,bChil,bHab,bPen,bPer) ~ dnorm(0,10),
+  sigma ~ dunif(0,20)),
+  data2_sqrt,
+  chains = 4)
+
+plot(data2_sqrt.stan)
+precis(data2_sqrt.stan)
+par(mfrow=c(1,1),mfcol=c(1,1))
+plot(precis(data2_sqrt.stan))
+
+#compare the model using square root transformation and the original data
+compare(data2_sqrt.stan,species.trt.stan)
+plot(compare(data2_sqrt.stan,species.trt.stan))
+
+
+coeftab(data2_sqrt.stan,species.trt.stan)
+plot(coeftab(data2_sqrt.stan,species.trt.stan))
+
+```
+
+##2b) Is WAIC an appropriate way to compare the model fits with untransformed and transformed data?  How can you test this?  
+For the results of compare, we see the model fits with tranformed data has a much lower WAIC and the largest weight value.  
+  
+How to test?
+
+##2c) How do you get sqrt transformed parameter estimates (especially when they are < 1) back on the original scale (I don't know the answer to this)  
+
+
+##3)  Fit a model with a species by treatment interaction.  Which species have a trt response that is different from S. chm?  
+
+```{r}
+head(data2)
+
+#Fit a model with a species by treatment interaction.
+#S. chm?
+
+
+
+
+
+```
+
+
+
