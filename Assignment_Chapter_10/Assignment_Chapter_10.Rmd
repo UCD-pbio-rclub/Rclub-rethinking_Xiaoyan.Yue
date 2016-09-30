@@ -1,0 +1,148 @@
+---
+title: "Assignment_Chapter_10"
+author: "XIAOYAN YUE"
+date: "2016/9/6"
+output: 
+  html_document: 
+    keep_md: yes
+---
+```{r}
+library(rethinking)
+data("chimpanzees")
+d <- chimpanzees
+
+head(d)
+```
+##Easy
+##10E1. If an event has probability 0.35, what are the log-odds of this event?
+Because odds are the ratio of the probability an event happens to the probability it does not happen, so log-odds of this event is: 
+```{r}
+log(0.35/(1-0.35))
+```
+##10E2. If an event has log-odds 3.2, what is the probability of this event?
+```{r}
+logistic(3.2)
+```
+##10E3. Suppose that a coefficient in a logistic regression has value 1.7. What does this imply about the proportional change in odds of the outcome?
+```{r}
+exp(1.7)
+logistic(1.7)
+
+```
+
+##10E4. Why do Poisson regressions sometimes require the use of an offset? Provide an example.
+
+##Medium.
+##10M2. If a coefficient in a Poisson regression has value 1.7, what does this imply about the change in the outcome?
+
+##10M4 Explain why the log link is appropriate for a Poisson generalized linear model.
+Because the log link ensures that lamada i is always positive, which is required of the expected value of
+a count outcome.
+
+##10M5 What would it imply to use a logit link for the mean of a Poisson generalized linear model? Can you think of a real research problem for which this would make sense?
+
+##10H1. Use map to construct a quadratic approximate posterior distribution for the chimpanzee model that includes a unique intercept for each actor, m10.4 (page 299). Compare the quadratic approximation to the posterior distribution produced instead from MCMC. Can you explain both the differences and the similarities between the approximate and the MCMC distributions? 
+```{r}
+d2 <- d
+d2$recipient <- NULL
+
+m10.4 <- map2stan(
+alist(
+pulled_left ~ dbinom( 1 , p ) ,
+logit(p) <- a[actor] + (bp + bpC*condition)*prosoc_left ,
+a[actor] ~ dnorm(0,10),
+bp ~ dnorm(0,10),
+bpC ~ dnorm(0,10)
+) ,
+data=d2 , chains=2 , iter=2500 , warmup=500 )
+
+
+```
+
+##10H2. Use WAIC to compare the chimpanzee model that includes a unique intercept for each actor,m10.4 (page 299), to the simpler models fit in the same section.
+
+##10H4. The data contained in data(salamanders) are counts of salamanders (Plethodon elongatus) from 47 different 49-m2 plots in northern California.146 The column SALAMAN is the count in each plot, and the columns PCTCOVER and FORESTAGE are percent of ground cover and age of trees in the plot, respectively. You will model SALAMAN as a Poisson variable.  
+
+###(a) Model the relationship between density and percent cover, using a log-link (same as the example in the book and lecture). Use weakly informative priors of your choosing. Check the quadratic approximation again, by comparing map to map2stan. Then plot the expected counts and their 89% interval against percent cover. In which ways does the model do a good job? In which ways does it do a bad job?  
+```{r}
+library(rethinking)
+data(salamanders)
+
+d <- salamanders
+
+#make plot of raw data to begin
+plot(d$PCTCOVER, d$SALAMAN, col=rangi2, xlab = "PCTCOVER (percent of ground cover)", ylab = "SALAMAN (counts of salamanders)")
+
+head(d)
+mean(d$SALAMAN)
+summary(d)
+
+# fit a model
+m10H4 <- map(
+  alist(
+     SALAMAN ~ dpois( lambda ),
+     log(lambda) <- a + bp*PCTCOVER,
+     a ~ dnorm(0,3),
+     bp ~ dnorm(0,1)),
+  data=d)
+
+precis(m10H4, corr = TRUE)
+plot(precis(m10H4))
+
+## sequence of PCTCOVER to compute over
+pct.seq <- seq(from = 0, to = 100, length.out = 100)
+pct.seq
+## predict the counts of alamander
+d.pred <- data.frame(PCTCOVER = pct.seq)
+lambda.pred.s <- link(m10H4, data = d.pred)
+lambda.med <- apply(lambda.pred.s, 2 , median)
+lambda.PI <- apply(lambda.pred.s, 2, PI)
+
+## plot predicted counts
+lines(pct.seq,lambda.med, col=rangi2)
+shade(lambda.PI, pct.seq, col=col.alpha(rangi2,0.2))
+
+m10H4.stan <- map2stan(m10H4, chains = 4, iter = 2000)
+
+precis(m10H4.stan, corr = TRUE)
+plot(precis(m10H4.stan))
+
+```
+###(b) Can you improve the model by using the other predictor, FORESTAGE? Try any models you think useful. Can you explain why FORESTAGE helps or does not help with prediction?
+```{r}
+#make plot of raw data to begin
+head(d)
+plot(d$FORESTAGE, d$SALAMAN, col=rangi2, xlab = "FORESTAGE (age of trees)", ylab = "SALAMAN (counts of salamanders)")
+
+summary(d)
+
+# fit a model
+m10H4_b <- map(
+  alist(
+     SALAMAN ~ dpois( lambda ),
+     log(lambda) <- a + bf*FORESTAGE,
+     a ~ dnorm(0,3),
+     bf ~ dnorm(0,1)),
+  data=d)
+
+precis(m10H4_b, corr = TRUE)
+plot(precis(m10H4_b))
+
+## sequence of PCTCOVER to compute over
+fore.seq <- seq(from = 0, to = 680, length.out = 1000)
+
+## predict the counts of alamander
+d.pred <- data.frame(FORESTAGE = fore.seq)
+lambda.pred.s <- link(m10H4_b, data = d.pred)
+lambda.med <- apply(lambda.pred.s, 2 , median)
+lambda.PI <- apply(lambda.pred.s, 2, PI)
+
+## plot predicted counts
+lines(fore.seq,lambda.med, col=rangi2)
+shade(lambda.PI, fore.seq, col=col.alpha(rangi2,0.2))
+
+m10H4_b.stan <- map2stan(m10H4_b, chains = 4, iter = 2000)
+
+precis(m10H4_b.stan, corr = TRUE)
+plot(precis(m10H4.stan))
+```
