@@ -11,14 +11,13 @@ output:
 As smaller sample sizes, shrink more. Hence, (a)will create more shrinkage.
 
 ##12E2
-```{r}
 yi ~ Binomial(1,pi)
 logit(pi) = a_group[i]+bxi
 a_group ~ Normal(a,sigma) #creat varing intercepts prior
 b ~ Normal(0,1)
 a ~ Normal(0,1)#prior for average group
 sigma ~ HalfCauchy(0,1)#prior for standard deviation of groups
-```
+
 The prior for the a_group intercept is now a function of two parameters,a and sigma. The Gaussian distribution with mean 'a' and standard deviation 'sigma' is the prior for each tank's intercept. Hence, there are two levels in the model,each resembling a simpler model.
 
 ##12M1
@@ -30,22 +29,23 @@ data(reedfrogs)
 d <- reedfrogs
 head(d)
 colnames(d)
+d
 # make the tank cluster variable
 d$tank <- 1:nrow(d)
 
 #make dummy variables for predation and size
-d$pred <- ifelse(d$pred=="no",0,1)
-d$size <- ifelse(d$size=="small",1,2)
+d$pred2 <- ifelse(d$pred=="no",0,1)
+d$size2 <- ifelse(d$size=="small",0,1)
 
 #fit the model with either main effect alone
 ##pred
 m12m.1.pred <- map2stan(
  alist(
   surv ~ dbinom( density , p ) ,
-  logit(p) <- a_tank[tank] + bp*pred,
+  logit(p) <- a_tank[tank] + bp*pred2,
   a_tank[tank] ~ dnorm( a , sigma ) ,
-  bp ~ dnorm(0,1),
-  a ~ dnorm(0,1) ,
+  bp ~ dnorm(0,2),
+  a ~ dnorm(0,5) ,
   sigma ~ dcauchy(0,1)
  ), data=d , iter=4000 , chains=4 )
 
@@ -55,10 +55,10 @@ precis(m12m.1.pred,depth=2)
 m12m.1.size <- map2stan(
  alist(
   surv ~ dbinom( density , p ) ,
-  logit(p) <- a_tank[tank] + bs*size,
+  logit(p) <- a_tank[tank] + bs*size2,
   a_tank[tank] ~ dnorm( a , sigma ) ,
   bs ~ dnorm(0,2),
-  a ~ dnorm(0,1) ,
+  a ~ dnorm(0,5) ,
   sigma ~ dcauchy(0,1)), 
  data=d , iter=4000 , chains=4 )
 
@@ -68,11 +68,11 @@ precis(m12m.1.size,depth=2)
 m12m.1.pred.size <- map2stan(
  alist(
   surv ~ dbinom( density , p ) ,
-  logit(p) <- a_tank[tank] + bp*pred + bs*size ,
+  logit(p) <- a_tank[tank] + bp*pred2 + bs*size2 ,
   a_tank[tank] ~ dnorm( a , sigma ) ,
-  bp ~ dnorm(0,1),
+  bp ~ dnorm(0,2),
   bs ~ dnorm(0,2),
-  a ~ dnorm(0,1) ,
+  a ~ dnorm(0,5) ,
   sigma ~ dcauchy(0,1)), 
  data=d , iter=4000 , chains=4 )
 
@@ -82,12 +82,12 @@ precis(m12m.1.pred.size,depth=2)
 m12m.1.pred.size.interaction <- map2stan(
  alist(
   surv ~ dbinom( density , p ) ,
-  logit(p) <- a_tank[tank] + bp*pred + bs*size +bps*pred*size,
+  logit(p) <- a_tank[tank] + bp*pred2 + bs*size2 +bps*pred2*size2,
   a_tank[tank] ~ dnorm( a , sigma ) ,
-  bp ~ dnorm(0,1),
+  bp ~ dnorm(0,2),
   bs ~ dnorm(0,2),
   bps ~ dnorm(0,1),
-  a ~ dnorm(0,1) ,
+  a ~ dnorm(0,5) ,
   sigma ~ dcauchy(0,1)), 
  data=d , iter=4000 , chains=4 )
 
