@@ -1,0 +1,105 @@
+---
+title: "Assignment_Chapter_12"
+author: "XIAOYAN YUE"
+date: "2016Äê10ÔÂ27ÈÕ"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+##12E1 
+As smaller sample sizes, shrink more. Hence, (a)will create more shrinkage.
+
+##12E2
+```{r}
+yi ~ Binomial(1,pi)
+logit(pi) = a_group[i]+bxi
+a_group ~ Normal(a,sigma) #creat varing intercepts prior
+b ~ Normal(0,1)
+a ~ Normal(0,1)#prior for average group
+sigma ~ HalfCauchy(0,1)#prior for standard deviation of groups
+```
+The prior for the a_group intercept is now a function of two parameters,a and sigma. The Gaussian distribution with mean 'a' and standard deviation 'sigma' is the prior for each tank's intercept. Hence, there are two levels in the model,each resembling a simpler model.
+
+##12M1
+###Revisit the Reed frog survival data, data(reedfrogs), and add the predation and size treatment variables to the varying intercepts model. Consider models with either main effect alone, both main effects, as well as a model including both and their interaction. Instead of focusing on inferences about these two predictor variables, focus on the inferred variation across tanks. Explain why it changes as it does across models.
+```{r}
+library(rethinking)
+
+data(reedfrogs)
+d <- reedfrogs
+head(d)
+colnames(d)
+# make the tank cluster variable
+d$tank <- 1:nrow(d)
+
+#make dummy variables for predation and size
+d$pred <- ifelse(d$pred=="no",0,1)
+d$size <- ifelse(d$size=="small",1,2)
+
+#fit the model with either main effect alone
+##pred
+m12m.1.pred <- map2stan(
+ alist(
+  surv ~ dbinom( density , p ) ,
+  logit(p) <- a_tank[tank] + bp*pred,
+  a_tank[tank] ~ dnorm( a , sigma ) ,
+  bp ~ dnorm(0,1),
+  a ~ dnorm(0,1) ,
+  sigma ~ dcauchy(0,1)
+ ), data=d , iter=4000 , chains=4 )
+
+precis(m12m.1.pred,depth=2)
+
+##size
+m12m.1.size <- map2stan(
+ alist(
+  surv ~ dbinom( density , p ) ,
+  logit(p) <- a_tank[tank] + bs*size,
+  a_tank[tank] ~ dnorm( a , sigma ) ,
+  bs ~ dnorm(0,2),
+  a ~ dnorm(0,1) ,
+  sigma ~ dcauchy(0,1)), 
+ data=d , iter=4000 , chains=4 )
+
+precis(m12m.1.size,depth=2)
+
+##fit models with both main effects, including pred and size
+m12m.1.pred.size <- map2stan(
+ alist(
+  surv ~ dbinom( density , p ) ,
+  logit(p) <- a_tank[tank] + bp*pred + bs*size ,
+  a_tank[tank] ~ dnorm( a , sigma ) ,
+  bp ~ dnorm(0,1),
+  bs ~ dnorm(0,2),
+  a ~ dnorm(0,1) ,
+  sigma ~ dcauchy(0,1)), 
+ data=d , iter=4000 , chains=4 )
+
+precis(m12m.1.pred.size,depth=2)
+
+##fit model including both and their interaction
+m12m.1.pred.size.interaction <- map2stan(
+ alist(
+  surv ~ dbinom( density , p ) ,
+  logit(p) <- a_tank[tank] + bp*pred + bs*size +bps*pred*size,
+  a_tank[tank] ~ dnorm( a , sigma ) ,
+  bp ~ dnorm(0,1),
+  bs ~ dnorm(0,2),
+  bps ~ dnorm(0,1),
+  a ~ dnorm(0,1) ,
+  sigma ~ dcauchy(0,1)), 
+ data=d , iter=4000 , chains=4 )
+
+precis(m12m.1.pred.size.interaction,depth=2)
+
+```
+
+##12M2
+### Compare the models you fit just above, using WAIC. Can you reconcile the differences in WAIC with the posterior distributions of the models?
+```{r}
+#compare the models
+compare(m12m.1.pred,m12m.1.size,m12m.1.pred.size,m12m.1.pred.size.interaction)
+```
+
+
