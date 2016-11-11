@@ -166,12 +166,13 @@ sort(unique(d2$district_id))
 colnames(d2) <- sub(".","_",fix= TRUE,colnames(d2))
 
 str(d2)
+summary(d2)
 
 m12h.1.traditional <- map2stan(
  alist(
   use_contraception ~ dbinom( woman , p ) ,
   logit(p) <- a_district_id [district_id], 
-  a_district_id[district_id] ~ dnorm( 0 , 100 )), data=d2 , iter=4000 , chains=4 )
+  a_district_id[district_id] ~ dnorm( 0, 1 )), data=d2 , iter=4000 , chains=4 )
 
 precis(m12h.1.traditional,depth=2)
 
@@ -181,16 +182,23 @@ m12h.1.mutilevel <- map2stan(
   use_contraception ~ dbinom( woman , p ) ,
   logit(p) <- a_district_id[district_id],
   a_district_id[district_id] ~ dnorm( a , sigma ) ,
-  a ~ dnorm(0,100) ,
+  a ~ dnorm(0,1) ,
   sigma ~ dcauchy(0,5)
  ), data=d2 , iter=4000 , chains=4 )
 
 precis(m12h.1.mutilevel,depth=2)
 
 #plot the predicted proportions of women in each district using contraception for traditional model
+#extract posterior 
+post_traditional <- extract.samples(m12h.1.traditional)
+post_mutilevel <- extract.samples(m12h.1.mutilevel)
+
+d2$p_traditional <- logistic(apply(post_traditional$a_district_id,2,mean))
+d2$p_mutilevel <- logistic(apply(post_mutilevel$a_district_id,2,mean))
+
 estimated.a_district_id <- as.numeric( coef(m12h.1.traditional)[1:60] )
-dsim$p_partpool <- logistic( estimated.a_pond )
-dsim$p_true <- logistic( dsim$true_a )
+dsim$p_normal <- logistic( estimated.a_district_id )
+dsim$p_cauchy <- logistic( dsim$true_a )
 nopool_error <- abs( dsim$p_nopool - dsim$p_true )
 partpool_error <- abs( dsim$p_partpool - dsim$p_true )
 plot( 1:60 , nopool_error , xlab="pond" , ylab="absolute error" ,
