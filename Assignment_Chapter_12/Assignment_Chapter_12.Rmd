@@ -102,4 +102,99 @@ precis(m12m.1.pred.size.interaction,depth=2)
 compare(m12m.1.pred,m12m.1.size,m12m.1.pred.size,m12m.1.pred.size.interaction)
 ```
 
+#The function:link, which is trying to get more predictions
+#extract.sample: which only get samples from the real posterior distributions
 
+##12M3 Re-estimate the basic Reed frog varying intercept model, but now using a Cauchy distribution in place of the Gaussian distribution for the varying intercepts. That is, fit this model: si ~ Binomial(ni; pi); logit(pi) = a_tank[i]; a[tank] ~ Cauchy(a,sigma); a ~ Normal(0; 1); sigma ~ HalfCauchy(0; 1). Compare the posterior means of the intercepts, a[tank], to the posterior means produced in the chapter, using the customary Gaussian prior. Can you explain the pattern of differences?
+
+```{r}
+library(rethinking)
+data(reedfrogs)
+d <- reedfrogs
+d$tank <- 1:nrow(d)
+head(d)
+str(d)
+
+d$pred <- as.numeric(d$pred)
+d$size <- as.numeric(d$size)
+
+
+#fit the intercepts with a Gaussian distribution
+m12m.3a <- map2stan(
+ alist(
+  surv ~ dbinom( density, p ) ,
+  logit(p) <- a_tank[tank],
+  a_tank[tank] ~ dnorm( a , sigma ) ,
+  a ~ dnorm(0,1) ,
+  sigma ~ dcauchy(0,1)), 
+ data=d , iter=4000 , chains=4 )
+
+precis(m12m.3a,depth=2)
+
+#fit intercepts with a Cauchy distribution
+m12m.3b <- map2stan(
+ alist(
+  surv ~ dbinom( density, p ) ,
+  logit(p) <- a_tank[tank],
+  a_tank[tank] ~ dcauchy( a , sigma ) ,
+  a ~ dnorm(0,1) ,
+  sigma ~ dcauchy(0,1)), 
+ data=d , iter=4000 , chains=4 )
+ 
+precis(m12m.3b,depth=2)
+
+#it seems the intercept with a cauchy distribution displayed a higher variation (from -2 to 12) than that with a normal distribution (from -1.82 to 3.9). If it the priors of the intercepts with cauchy distribution created a higher variation among different ponds...?
+
+```
+
+##12H1
+```{r}
+#get the data
+data(bangladesh)
+d2 <- bangladesh 
+
+str(d2)
+
+#To ensure that the cluster variable is a contiguous set of integers
+sort(unique(d2$district))
+
+#make a new variable that is contiguous
+d2$district_id <- as.integer(as.factor(d2$district))
+sort(unique(d2$district_id))
+
+#fit a traditional fixed-effects model that uses dummy variable for district
+colnames(d2) <- sub(".","_",fix= TRUE,colnames(d2))
+
+str(d2)
+
+m12h.1.traditional <- map2stan(
+ alist(
+  use_contraception ~ dbinom( woman , p ) ,
+  logit(p) <- a_district_id [district_id], 
+  a_district_id[district_id] ~ dnorm( 0 , 100 )), data=d2 , iter=4000 , chains=4 )
+
+precis(m12h.1.traditional,depth=2)
+
+#fit a mutilevel model with varying intercepts for districts
+m12h.1.mutilevel <- map2stan(
+ alist(
+  use_contraception ~ dbinom( woman , p ) ,
+  logit(p) <- a_district_id[district_id],
+  a_district_id[district_id] ~ dnorm( a , sigma ) ,
+  a ~ dnorm(0,100) ,
+  sigma ~ dcauchy(0,5)
+ ), data=d2 , iter=4000 , chains=4 )
+
+precis(m12h.1.mutilevel,depth=2)
+
+#plot the predicted proportions of women in each district using contraception for traditional model
+estimated.a_district_id <- as.numeric( coef(m12h.1.traditional)[1:60] )
+dsim$p_partpool <- logistic( estimated.a_pond )
+dsim$p_true <- logistic( dsim$true_a )
+nopool_error <- abs( dsim$p_nopool - dsim$p_true )
+partpool_error <- abs( dsim$p_partpool - dsim$p_true )
+plot( 1:60 , nopool_error , xlab="pond" , ylab="absolute error" ,
+col=rangi2 , pch=16 )
+points( 1:60 , partpool_error )
+
+```
