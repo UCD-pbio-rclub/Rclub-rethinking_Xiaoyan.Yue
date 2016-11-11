@@ -199,10 +199,5 @@ d2$p_mutilevel <- logistic(apply(post_mutilevel$a_district_id,2,mean))
 estimated.a_district_id <- as.numeric( coef(m12h.1.traditional)[1:60] )
 dsim$p_normal <- logistic( estimated.a_district_id )
 dsim$p_cauchy <- logistic( dsim$true_a )
-nopool_error <- abs( dsim$p_nopool - dsim$p_true )
-partpool_error <- abs( dsim$p_partpool - dsim$p_true )
-plot( 1:60 , nopool_error , xlab="pond" , ylab="absolute error" ,
-col=rangi2 , pch=16 )
-points( 1:60 , partpool_error )
 
 ```
