@@ -170,34 +170,121 @@ summary(d2)
 
 m12h.1.traditional <- map2stan(
  alist(
-  use_contraception ~ dbinom( woman , p ) ,
+  use_contraception ~ dbinom( 1 , p ) ,
   logit(p) <- a_district_id [district_id], 
-  a_district_id[district_id] ~ dnorm( 0, 1 )), data=d2 , iter=4000 , chains=4 )
+  a_district_id[district_id] ~ dnorm( 0, 1 )), 
+ data=d2 , iter=4000 , chains=4 )
 
 precis(m12h.1.traditional,depth=2)
+plot(m12h.1.traditional,ask=FALSE)
 
 #fit a mutilevel model with varying intercepts for districts
 m12h.1.mutilevel <- map2stan(
  alist(
-  use_contraception ~ dbinom( woman , p ) ,
+  use_contraception ~ dbinom( 1 , p ) ,
   logit(p) <- a_district_id[district_id],
   a_district_id[district_id] ~ dnorm( a , sigma ) ,
   a ~ dnorm(0,1) ,
-  sigma ~ dcauchy(0,5)
+  sigma ~ dcauchy(0,1)
  ), data=d2 , iter=4000 , chains=4 )
 
 precis(m12h.1.mutilevel,depth=2)
 
 #plot the predicted proportions of women in each district using contraception for traditional model
 #extract posterior 
-post_traditional <- extract.samples(m12h.1.traditional)
-post_mutilevel <- extract.samples(m12h.1.mutilevel)
+library(reshape2)
 
-d2$p_traditional <- logistic(apply(post_traditional$a_district_id,2,mean))
-d2$p_mutilevel <- logistic(apply(post_mutilevel$a_district_id,2,mean))
+pred.df <- data.frame(district_id=unique(d2$district_id))
+link.vary <- link(m12h.1.traditional,data=pred.df,n=4000)
 
-estimated.a_district_id <- as.numeric( coef(m12h.1.traditional)[1:60] )
-dsim$p_normal <- logistic( estimated.a_district_id )
-dsim$p_cauchy <- logistic( dsim$true_a )
+pred.df$trad.vary.link <- apply(link.vary,2,mean)
+pred.df$trad.vary.coef <- logistic(coef(m12h.1.traditional)[1:60])
 
+post_traditional.vary <- extract.samples(m12h.1.traditional)$a_district
+post_mutilevel.vary <- extract.samples(m12h.1.mutilevel)$a_district
+
+
+```
+DCE. 2
+##12E3 Make the following model into a mutilevel model
+yi ~ Normal(mu, sigma)  
+mu = a + a_group[group] + bxi  
+a_group[group] ~ Normal(0,sigma_group)  
+a ~ Normal(0,10)  
+b ~ Normal(0,1)  
+sigma ~ HalfCauchy(0,2)  
+sigma_group ~ Normal(0,1)  
+
+##12E4 Write an example mathmatical model formula for a Poisson regression with varying intercepts.
+Based on the example from Chapter 10, T is total_tools, P is population, and i indexes each society:  
+Ti ~ Poisson(mu)  
+log(mu) = a + a_society[society] + bplogPi  
+a ~ Normal(0,10)  
+bp ~ Normal(0,1)  
+a_society[society] ~ Normal(0,sigma_society)  
+sigma_society ~ HalfCauchy(0,1)  
+
+##12E5 Write an example mathematical model formula for a Poisson regression with two different kinds of varying intercepts, a cross-classified model.
+Based on the former example, I added a variation as "region" for different societies:  
+Ti ~ Poisson(mu)  
+log(mu) = a + a_society[society] + a_region[region] + bplogPi  
+a ~ Normal(0,10)  
+bp ~ Normal(0,1)  
+a_society[society] ~ Normal(0,sigma_society)  
+sigma_society ~ HalfCauchy(0,1)  
+a_region[region] ~ Normal(0, sigma_region)  
+sigma_region ~ HalfCauchy(0,1)  
+
+##12M4 Fit the following cross-classified multilevel model to the chimpanzees data:
+
+Li ~ Binomial(1, pi)  
+logit(pi) = a_actor[i] + a_block[i] + (bP + bPCCi)Pi  
+a_actor ~ Normal(a, sigma_actor)  
+a_block ~ Normal(gama, a_block)   
+a,gama,bP,bPC ~ Normal(0, 10)  
+a_actor, a_block ~ HalfCauchy(0, 1)  
+
+```{r}
+#The model in the Chapter
+library(rethinking)
+data(chimpanzees)
+d2 <- chimpanzees
+d2$recipient <- NULL     # get rid of NAs
+d2$block_id <- d2$block  # name 'block' is reserved by Stan
+
+m12m4.1 <- map2stan(
+  alist(
+    pulled_left ~ dbinom( 1 , p ),
+    logit(p) <- a + a_actor[actor] + a_block[block_id] +
+      (bp + bpc*condition)*prosoc_left,
+    a_actor[actor] ~ dnorm( 0 , sigma_actor ),
+    a_block[block_id] ~ dnorm( 0 , sigma_block ),
+    c(a,bp,bpc) ~ dnorm(0,10),
+    sigma_actor ~ dcauchy(0,1),
+    sigma_block ~ dcauchy(0,1)
+  ) ,
+  data=d2, warmup=1000 , iter=6000 , chains=4 , cores=3 )
+#fit the cross-classfied multilevel model to the chimpanzees data (without the common intercept for two types of clusters)
+m12m4.2 <- map2stan(
+  alist(
+    pulled_left ~ dbinom( 1 , p ),
+    logit(p) <- a_actor[actor] + a_block[block_id] +
+      (bp + bpc*condition)*prosoc_left,
+    a_actor[actor] ~ dnorm( a , sigma_actor ),
+    a_block[block_id] ~ dnorm( gama , sigma_block ),
+    c(a,gama,bp,bpc) ~ dnorm(0,10),
+    sigma_actor ~ dcauchy(0,1),
+    sigma_block ~ dcauchy(0,1)
+  ) ,
+  data=d2, warmup=1000 , iter=6000 , chains=4 , cores=3 )
+
+#compare two different model
+precis(m12m4.1,depth = 2)
+precis(m12m4.2,depth = 2)
+
+compare(m12m4.1,m12m4.2)
+
+#extract samples from two different model and plot
+pairs(m12m4.1)
+paris(m12m4.1)
 ```
