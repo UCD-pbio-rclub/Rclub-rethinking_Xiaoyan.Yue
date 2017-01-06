@@ -1,0 +1,239 @@
+---
+title: "Jan06AssignmentQs"
+author: "Xiaoyan Yue"
+date: "1/5/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache= TRUE, autodep = TRUE)
+
+library(rethinking)
+library(reshape2)
+library(brms)
+library(rstan)
+
+
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+##Exercises
+
+###To gain familiarity with brms I am going to have you refit models from Statistical Rethinking with brms. In all cases compare the brms and map2stan parameter estimates; they should be effectively the same if you have specified them correctly.
+
+###Q1:Fit model 10.9 (R code 10.28) with brms. Remember that you should not need to transform the predictors, create dummy variables, nor coerce indexes to use brms. Compare to the map2stan fit. Test whether the coefficient for gender is different from 0 in the brms model.
+```{r}
+#Load the data 
+data(UCBadmit)
+d <- UCBadmit
+
+d
+summary(d)
+
+#Fit the model with map2stan
+#First, creat a dummy variable for "application.gender"
+d$male <- ifelse( d$applicant.gender=="male" , 1 , 0 )
+#Second, make index for each dpartment
+d$dept_id <- coerce_index( d$dept )
+#Third, get rid of "." in the colum name "application.gender"
+colnames(d) <- sub(".","_",colnames(d),fixed = TRUE)
+
+mQ1.stan <- map2stan(
+    alist(
+        admit ~ dbinom( applications , p ) ,
+        logit(p) <- a_dept[dept_id] + bm*male ,
+        a_dept[dept_id] ~ dnorm(0,10) ,
+        bm ~ dnorm(0,10)
+) , data=d, chains = 4)
+
+#test the model
+precis(mQ1.stan,depth = 2)
+pairs(mQ1.stan)
+
+summary(mQ1.stan)
+
+#Fit the model by brms, I'm confused by how to create the outcome variable, so I tried different ways
+
+#(in chapter10, 10.1.4, an aggregated binomial uses cbind to build the outcome variable)
+mQ1.brms1 <- brm(cbind(admit,reject) ~ 0 + dept + applicant_gender,#separate intercept for each dept
+                #family = "binomial",#Multivariate models are not yet implemented for family 'binomial'.
+                prior=set_prior("normal(0,10)", class="b"),
+                data = d)
+
+summary(mQ1.brms1)
+plot(mQ1.brms1, ask = FALSE)
+
+#then, I create a outcome variable for the model, calculate the probablity of admit in each department
+d$admit_p <- d$admit/d$applications
+mQ1.brms2 <- brm(admit_p ~ 0 + dept + applicant_gender,#separate intercept for each dept
+                prior=set_prior("normal(0,10)", class="b"),
+                data = d)
+summary(mQ1.brms2)
+plot(mQ1.brms2, ask = FALSE)
+#Test whether the coefficient for gender is different from 0 in the brms model
+hypothesis(mQ1.brms1,"admit_applicant_gendermale = 0") 
+plot(hypothesis(mQ1.brms1,"admit_applicant_gendermale = 0"))
+
+hypothesis(mQ1.brms2,"applicant_gendermale = 0")
+plot(hypothesis(mQ1.brms2,"applicant_gendermale = 0"))
+
+#fit model with interactions between department and gender
+#(1)
+mQ1.brms3 <- brm(cbind(admit,reject) ~ 0 + dept * applicant_gender,
+                prior=set_prior("normal(0,10)", class="b"),
+                data = d)
+
+summary(mQ1.brms3)
+plot(mQ1.brms3, ask = FALSE)
+#(2)
+mQ1.brms4 <- brm(admit_p ~ 0 + dept * applicant_gender,#separate intercept for each dept
+                prior=set_prior("normal(0,10)", class="b"),
+                data = d)
+summary(mQ1.brms4)
+plot(mQ1.brms4, ask = FALSE)
+#Test whether the coefficient for gender is different from 0 in the brms model
+hypothesis(mQ1.brms3,"admit_applicant_gendermale = 0") 
+plot(hypothesis(mQ1.brms3,"admit_applicant_gendermale = 0"))
+
+hypothesis(mQ1.brms4,"applicant_gendermale = 0")
+plot(hypothesis(mQ1.brms4,"applicant_gendermale = 0"))
+
+```
+###Q2:Refit models 12.1 and 12.2 (Rcode 12.2 and 12.3) with brms
+```{r}
+data(reedfrogs)
+d2 <- reedfrogs
+
+d2
+# make the tank cluster variable
+d2$tank <- 1:nrow(d2)
+#fit the model with stan
+m12.1.stan <- map2stan(
+    alist(
+        surv ~ dbinom( density , p ) ,
+        logit(p) <- a_tank[tank] ,
+        a_tank[tank] ~ dnorm( 0 , 5 )
+), data=d2 )
+precis(m12.1.stan,depth = 2)
+
+#refit the model 12.1 with brms
+#(1)without interaction
+m12.1.brms1 <- brm(propsurv ~ pred + size,
+                prior=set_prior("normal(0,5)", class="b"),
+                data = d2)
+summary(m12.1.brms1)
+plot(m12.1.brms1,ask=FALSE)
+
+#(2)with
+m12.1.brms2 <- brm(propsurv ~ pred*size,
+                prior=set_prior("normal(0,5)", class="b"),
+                data = d2)
+summary(m12.1.brms2)
+plot(m12.1.brms2,ask=FALSE)
+
+#fit model 12.2 with stan
+m12.2.stan <- map2stan(
+    alist(
+        surv ~ dbinom( density , p ) ,
+        logit(p) <- a_tank[tank] ,
+        a_tank[tank] ~ dnorm( a , sigma ) ,
+        a ~ dnorm(0,1) ,
+        sigma ~ dcauchy(0,1)
+    ), data=d2 , chains=4 )
+precis(m12.2.stan, depth = 2)
+
+#refit the model 12.2 with brms, by specifying different priors for specific coefficients
+#(1)without interaction
+m12.2.brms1 <- brm(propsurv ~ pred + size,
+                   data = d2,
+                   prior= c(
+                     set_prior("normal(0,1)", class="Intercept"),
+                     set_prior("normal(0,1)", class="b"),
+                     set_prior("cauchy(0,1)", class = "sigma")))
+summary(m12.2.brms1)
+plot(m12.2.brms1,ask=FALSE)
+
+#(2)with interaction
+m12.2.brms2 <- brm(propsurv ~ pred * size,
+                   data = d2,
+                   prior= c(
+                     set_prior("normal(0,1)", class="Intercept"),
+                     set_prior("normal(0,1)", class="b"),
+                     set_prior("cauchy(0,1)", class = "sigma")))
+summary(m12.2.brms2)
+plot(m12.2.brms2,ask=FALSE)
+#comparing models
+loo(m12.1.brms1,m12.1.brms2,m12.2.brms1,m12.2.brms2)
+```
+
+###Q3:For the tomato data set, use both brms and map2stan to fit a model for intleng as a function of species, trt and their interaction, and include shelf as a random effect.
+```{r}
+d3 <- read.csv("/Users/xyyue/Documents/RClub/Rclub-rethinking_Xiaoyan.Yue/Assignment_Chapter_09/TomatoR2CSHL.csv")
+
+head(d3)
+
+#fit a model with stan for intleng as a function of species, trt and their interaction
+#categorical variable for trt, species and shelf
+d3$trt2 <- as.numeric(d3$trt)-1 #0 = H, 1=L
+d3$species_id <- coerce_index(d3$species)
+d3$shelf_id <- coerce_index(d3$shelf)
+
+d3.subset <- d3[,c("shelf_id","trt2","intleng","species_id")]
+
+head(d3.subset)
+summary(d3.subset)
+#fit the model
+mQ3.stan <- map2stan(
+  alist(
+    intleng ~ dnorm(mu,sigma),
+    mu <- a + a_shelf[shelf_id] + bs[species_id] + bt*trt2 + bst[species_id]*trt2,
+    a ~ dnorm(20,100),
+    a_shelf[shelf_id] ~ dnorm(0,sigma_shelf),
+    bs[species_id] ~ dnorm(0,10),
+    bt ~ dnorm(0,20),
+    bst[species_id] ~ dnorm(0,10),
+    sigma ~ dcauchy(0,1),
+    sigma_shelf ~ dexp(1) 
+  ),
+  data = d3.subset,
+  iter = 4000, 
+  warmup = 1000,
+  chains=4,
+  cores=2
+)
+precis(mQ3.stan)
+pairs(mQ3.stan)
+
+#fit a model with brm
+#(1)without interaction
+mQ3.brms1 <- brm(intleng ~ 0 + species + trt + (1|shelf),
+            data = d3,
+            prior = c(
+              set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
+              set_prior("normal(0,5)",class="b", coef = "trtL"), #set prior for "trtL"
+              set_prior("cauchy(0,1)", class = "sigma"), #half cauchy prior for sigma
+              set_prior("normal(0,1)", class = "sd", group = "shelf") #prior for shelf
+            )
+)
+summary(mQ3.brms1)
+plot(mQ3.brms1)
+
+#(2)with interaction
+mQ3.brms2 <- brm(intleng ~ 0 + trt * species + (1|shelf),
+            data = d3,
+            prior = c(
+              set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
+              set_prior("normal(0,5)",class="b", coef = "trtL"), #set prior for "trtL"
+              set_prior("cauchy(0,1)", class = "sigma"), #half cauchy prior for sigma
+              set_prior("normal(0,1)", class = "sd", group = "shelf") #prior for shelf
+            )
+)
+summary(mQ3.brms2)
+plot(mQ3.brms2)
+
+#compare the model
+loo(mQ3.brms1, mQ3.brms2)
+```

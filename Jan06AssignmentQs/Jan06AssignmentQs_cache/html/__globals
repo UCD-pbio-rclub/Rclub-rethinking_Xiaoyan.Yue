@@ -1,0 +1,3 @@
+unnamed-chunk-1	==	~	$	$<-	a_dept	alist	bm	brm	coerce_index	colnames	colnames<-	data	dept_id	hypothesis	ifelse	logit<-	male	map2stan	pairs	plot	precis	set_prior	sub	summary	UCBadmit
+unnamed-chunk-2	~	$<-	a_tank	alist	brm	c	data	logit<-	loo	map2stan	nrow	plot	precis	reedfrogs	set_prior	summary	tank
+unnamed-chunk-3	~	$	$<-	a	a_shelf	alist	as.numeric	brm	bs	bst	bt	c	coerce_index	head	loo	map2stan	pairs	plot	precis	read.csv	set_prior	shelf_id	species_id	summary	trt2
