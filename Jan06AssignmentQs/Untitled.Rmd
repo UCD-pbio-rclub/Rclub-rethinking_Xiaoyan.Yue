@@ -22,18 +22,19 @@ options(mc.cores = parallel::detectCores())
 ```
 
 
-```{r}
+```{r, fig.width=18, fig.height=8}
 d_own <- read.csv("/Users/xyyue/Documents/Phosphrous_project/Data_Jan6th/RSA_ILs")
 
 d_own
 #change the name of P-/P+
 d_own$type2 <- ifelse(d_own$type=="P-","P_limited","P_sufficient")
-d_own$sample <- sub("-","_",d_own$sample)
+d_own$sample <- sub("-","_",d_own$sample,fixed = TRUE)
 
 summary(d_own)
 str(d_own)
 #plot the raw data
 #plot for primary root length
+source("/Users/xyyue/function.R")
 p <- ggplot(data=d_own,aes(x=type2,y=length,color=type2)) 
 p <- p + geom_jitter()
 p <- p + stat_summary(fun.y="mean",geom="bar",alpha=0.5)
@@ -41,7 +42,9 @@ p <- p + stat_summary(fun.data="calc.sem",geom="errorbar",position="dodge")
 p <- p + facet_grid(.~sample)
 p <- p + labs(title="Primary Root Length")
 p
+```
 
+```{r}
 #plot for number of later root
 p <- ggplot(data=d_own,aes(x=type2,y=n_child,color=type2)) 
 p <- p + geom_jitter()
@@ -53,7 +56,7 @@ p
 
 
 #fit the model for primary root length
-m.brms <- brm(length ~ 0 + sample * type2 + (1|image),
+m.brms <- brm(length ~ 0 + sample * type2 + (1|image),#the average of random effect is 0, so the estimate is the standard deviation
             data = d_own,
             prior = c(
               set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
@@ -63,6 +66,9 @@ m.brms <- brm(length ~ 0 + sample * type2 + (1|image),
             ))
 
 summary(m.brms)
+
+
+#family specified parameter: it is the overall standard deviation for gussian distribution of the model
 
 #test the effect of type of plate:
 (Primary_root_length <- hypothesis(m.brms,"type2P_sufficient=0"))

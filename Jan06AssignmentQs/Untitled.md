@@ -150,7 +150,7 @@ d_own
 ```r
 #change the name of P-/P+
 d_own$type2 <- ifelse(d_own$type=="P-","P_limited","P_sufficient")
-d_own$sample <- sub("-","_",d_own$sample)
+d_own$sample <- sub("-","_",d_own$sample,fixed = TRUE)
 
 summary(d_own)
 ```
@@ -204,6 +204,7 @@ str(d_own)
 ```r
 #plot the raw data
 #plot for primary root length
+source("/Users/xyyue/function.R")
 p <- ggplot(data=d_own,aes(x=type2,y=length,color=type2)) 
 p <- p + geom_jitter()
 p <- p + stat_summary(fun.y="mean",geom="bar",alpha=0.5)
@@ -214,50 +215,11 @@ p
 ```
 
 ```
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
+## Warning: Removed 2 rows containing missing values (geom_errorbar).
 ```
 
 ![](Untitled_files/figure-html/unnamed-chunk-1-1.png)<!-- -->
+
 
 ```r
 #plot for number of later root
@@ -271,54 +233,14 @@ p
 ```
 
 ```
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
-
-## Warning: Computation failed in `stat_summary()`:
-## object 'calc.sem' of mode 'function' was not found
+## Warning: Removed 2 rows containing missing values (geom_errorbar).
 ```
 
-![](Untitled_files/figure-html/unnamed-chunk-1-2.png)<!-- -->
+![](Untitled_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
 
 ```r
 #fit the model for primary root length
-m.brms <- brm(length ~ 0 + sample * type2 + (1|image),
+m.brms <- brm(length ~ 0 + sample * type2 + (1|image),#the average of random effect is 0, so the estimate is the standard deviation
             data = d_own,
             prior = c(
               set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
@@ -432,6 +354,8 @@ summary(m.brms)
 ```
 
 ```r
+#family specified parameter: it is the overall standard deviation for gussian distribution of the model
+
 #test the effect of type of plate:
 (Primary_root_length <- hypothesis(m.brms,"type2P_sufficient=0"))
 ```

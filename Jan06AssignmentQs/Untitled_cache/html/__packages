@@ -1,14 +1,7 @@
 base
-methods
-datasets
-utils
-grDevices
-graphics
-stats
 ggplot2
 StanHeaders
 rstan
-parallel
 rethinking
 reshape2
 Rcpp

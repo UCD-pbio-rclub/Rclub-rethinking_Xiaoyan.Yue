@@ -1,1 +1,2 @@
-unnamed-chunk-1	==	~	$	$<-	aes	brm	c	facet_grid	geom_jitter	ggplot	hypothesis	ifelse	labs	length	n_child	read.csv	set_prior	stat_summary	str	sub	summary	type2
+unnamed-chunk-1	==	~	$	$<-	aes	facet_grid	geom_jitter	ggplot	ifelse	labs	length	read.csv	source	stat_summary	str	sub	summary	type2
+unnamed-chunk-2	~	aes	brm	c	d_own	facet_grid	geom_jitter	ggplot	hypothesis	labs	n_child	set_prior	stat_summary	summary	type2
