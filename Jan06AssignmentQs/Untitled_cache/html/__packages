@@ -6,3 +6,6 @@ rethinking
 reshape2
 Rcpp
 brms
+Matrix
+lme4
+lmerTest

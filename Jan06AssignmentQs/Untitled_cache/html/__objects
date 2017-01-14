@@ -1,2 +1,8 @@
-unnamed-chunk-1	d_own	p	calc.sem	model2d.lmer	object.name	plot.bar6	vlookup
-unnamed-chunk-2	m.brms	m.brms2	p	Primary_root_length	Primary_root_lengthM82	.__C__Rcpp_stan_fit4model42c22b3b83a4_file42c23aaed17d	.__C__Rcpp_stan_fit4model42c22c92e2f9_file42c219499017	.__global__	.requireCachedGenerics
+unnamed-chunk-1	d_own
+unnamed-chunk-2	p	calc.sem	model2d.lmer	object.name	plot.bar6	vlookup
+unnamed-chunk-3	p
+unnamed-chunk-4	d_own
+unnamed-chunk-5	m.brms1	m.brms2	.__C__Rcpp_stan_fit4model4c4417b974ae_file4c444ad7478	.__C__Rcpp_stan_fit4model4c447783b57f_file4c444ce1bcf	.__global__	.requireCachedGenerics
+unnamed-chunk-6	m.brms3	m.brms4	.__C__Rcpp_stan_fit4model4c4438875f5a_file4c44bcce3eb	.__C__Rcpp_stan_fit4model4c4473d28c5_file4c4472dcf0ad
+unnamed-chunk-7	Primary_root_length
+unnamed-chunk-8	m.lmer1	m.lmer2	m.lmer3

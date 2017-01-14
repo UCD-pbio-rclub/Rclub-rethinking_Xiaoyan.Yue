@@ -1,2 +1,8 @@
-unnamed-chunk-1	==	~	$	$<-	aes	facet_grid	geom_jitter	ggplot	ifelse	labs	length	read.csv	source	stat_summary	str	sub	summary	type2
-unnamed-chunk-2	~	aes	brm	c	d_own	facet_grid	geom_jitter	ggplot	hypothesis	labs	n_child	set_prior	stat_summary	summary	type2
+unnamed-chunk-1	==	$	$<-	gsub	ifelse	read.csv	str	summary
+unnamed-chunk-2	~	aes	d_own	facet_grid	geom_jitter	ggplot	labs	length	source	stat_summary	trt
+unnamed-chunk-3	~	aes	d_own	facet_grid	geom_jitter	ggplot	labs	n_child	stat_summary	trt
+unnamed-chunk-4	$	$<-	as.factor	relevel
+unnamed-chunk-5	~	brm	c	d_own	loo	set_prior	summary
+unnamed-chunk-6	~	brm	c	d_own	loo	m.brms1	m.brms2	set_prior	summary
+unnamed-chunk-7	hypothesis	m.brms1
+unnamed-chunk-8	~	anova	d_own	library	lmer

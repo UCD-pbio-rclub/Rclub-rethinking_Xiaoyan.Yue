@@ -21,21 +21,27 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 ```
 
-
-```{r, fig.width=18, fig.height=8}
+#Load the data
+```{r}
 d_own <- read.csv("/Users/xyyue/Documents/Phosphrous_project/Data_Jan6th/RSA_ILs")
 
-d_own
 #change the name of P-/P+
-d_own$type2 <- ifelse(d_own$type=="P-","P_limited","P_sufficient")
-d_own$sample <- sub("-","_",d_own$sample,fixed = TRUE)
+d_own$trt <- ifelse(d_own$type=="P-","P_limited","P_sufficient")
+#d_own$sample <- sub("-","_",d_own$sample,fixed = TRUE)#run twice,more than one "-"in "sample"
+d_own$sample <- gsub("-","_",d_own$sample)# only run once
 
+d_own$plate_id <- d_own$image
+
+#look at the data
 summary(d_own)
 str(d_own)
-#plot the raw data
+```
+
+#Plot the raw data
+```{r, fig.width=18, fig.height=8}
 #plot for primary root length
 source("/Users/xyyue/function.R")
-p <- ggplot(data=d_own,aes(x=type2,y=length,color=type2)) 
+p <- ggplot(data=d_own,aes(x=trt,y=length,color=trt)) 
 p <- p + geom_jitter()
 p <- p + stat_summary(fun.y="mean",geom="bar",alpha=0.5)
 p <- p + stat_summary(fun.data="calc.sem",geom="errorbar",position="dodge") 
@@ -46,51 +52,99 @@ p
 
 ```{r}
 #plot for number of later root
-p <- ggplot(data=d_own,aes(x=type2,y=n_child,color=type2)) 
+p <- ggplot(data=d_own,aes(x=trt,y=n_child,color=trt)) 
 p <- p + geom_jitter()
 p <- p + stat_summary(fun.y="mean",geom="bar",alpha=0.5)
 p <- p + stat_summary(fun.data="calc.sem",geom="errorbar",position="dodge") 
 p <- p + facet_grid(.~sample)
 p <- p + labs(title="Number of Later Root")
 p
-
-
-#fit the model for primary root length
-m.brms <- brm(length ~ 0 + sample * type2 + (1|image),#the average of random effect is 0, so the estimate is the standard deviation
-            data = d_own,
-            prior = c(
-              set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
-              set_prior("normal(0,20)",class="b", coef = "type2P_sufficient"), #set prior for "typeP_sufficient"
-              set_prior("cauchy(0,1)", class = "sigma"), #half cauchy prior for sigma
-              set_prior("normal(0,1)", class = "sd", group = "image") #prior for plate
-            ))
-
-summary(m.brms)
-
-
-#family specified parameter: it is the overall standard deviation for gussian distribution of the model
-
-#test the effect of type of plate:
-(Primary_root_length <- hypothesis(m.brms,"type2P_sufficient=0"))
-
-#test the effect of type of plate for M82 only
-(Primary_root_lengthM82 <- hypothesis(m.brms,"sampleM82:type2P_sufficient=0"))
-
-#fit the model for number of later root
-m.brms2 <- brm(n_child ~ 0 + sample * type2 + (1|image),
-            data = d_own,
-            prior = c(
-              set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
-              set_prior("normal(0,20)",class="b", coef = "type2P_sufficient"), #set prior for "typeP_sufficient"
-              set_prior("cauchy(0,1)", class = "sigma"), #half cauchy prior for sigma
-              set_prior("normal(0,1)", class = "sd", group = "image") #prior for plate
-            ))
-
-summary(m.brms2)
-#test the effect of type of plate:
-(Primary_root_length <- hypothesis(m.brms2,"type2P_sufficient=0"))
-
-#test the effect of type of plate for M82 only
-(Primary_root_lengthM82 <- hypothesis(m.brms2,"sampleM82:type2P_sufficient=0"))
 ```
 
+#Set the reference
+```{r}
+#set M82 and P_sufficient as the reference
+d_own$trt <- as.factor(d_own$trt)
+d_own$sample <- as.factor(d_own$sample)
+
+d_own$sample <- relevel(d_own$sample,ref = "M82")#relevel only useful for factors
+d_own$trt <- relevel(d_own$trt,ref = "P_sufficient")
+```
+
+##Fit model by brm and most of the priors are as default
+```{r}
+#fit the model for primary root length 
+m.brms1 <- brm(length ~ sample * trt ,#the average of random effect is 0, so the estimate is the standard deviation
+            data = d_own,
+            prior = c(
+              set_prior("normal(10,20)",class="Intercept"),
+              set_prior("normal(0,10)",class="b")))#sets the same prior for beta coefficients, the others are as default
+summary(m.brms1)
+
+m.brms2 <- brm(length ~ sample * trt + (1|plate_id),#the average of random effect is 0, so the estimate is the standard deviation
+            data = d_own,
+            prior = c(
+              set_prior("normal(10,20)",class="Intercept"),
+              set_prior("normal(0,10)",class="b")))#sets the same prior for beta coefficients, the others are as default
+summary(m.brms2)
+
+loo(m.brms1,m.brms2)#almost the same
+```
+
+##Set more specific priors
+```{r}
+m.brms3 <- brm(length ~ sample * trt,#the average of random effect is 0, so the estimate is the standard deviation
+            data = d_own,
+            prior = c(
+              set_prior("normal(10,20)",class="Intercept"),
+              set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
+              set_prior("normal(0,20)",class="b", coef = "trtP_limited"), 
+              set_prior("cauchy(0,1)", class = "sigma") #half cauchy prior for sigma
+            ))
+summary(m.brms3)
+
+m.brms4 <- brm(length ~ sample * trt + (1|plate_id),#the average of random effect is 0, so the estimate is the standard deviation
+            data = d_own,
+            prior = c(
+              set_prior("normal(10,20)",class="Intercept"),
+              set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
+              set_prior("normal(0,20)",class="b", coef = "trtP_limited"), 
+              set_prior("cauchy(0,1)", class = "sigma"), #half cauchy prior for sigma
+              set_prior("normal(0,5)", class = "sd", group = "plate_id") #prior for plate
+            ))
+summary(m.brms4)#family specified parameter: it is the overall standard deviation for gussian distribution of the model
+
+loo(m.brms3,m.brms4)
+
+loo(m.brms1,m.brms2,m.brms3,m.brms4)
+# If the first one is the best one? 
+#How do I make a good specific priors for each parameter?
+
+```
+
+##Test the hypothesis in the first model (m.brms1)
+```{r}
+#test the effect of treatment:
+(Primary_root_length <- hypothesis(m.brms1,"trtP_limited<0")) 
+#what's this tested for? For the intercept M82 on two different treatment or for the mean of all samples on two conditions?
+
+#If the result means the treatment effect is significant?
+
+#How can I test the effect of treatment for each sample? 
+
+```
+
+##How about fit the model by lmer
+```{r}
+library(lme4);library(lmerTest);library(ggplot2);library(reshape2)
+
+m.lmer1 <- lmer(length ~ sample * trt + (1|plate_id),data = d_own)
+m.lmer2 <- lmer(length ~ sample  + (1|plate_id),data = d_own)
+m.lmer3 <- lmer(length ~ sample + trt  + (1|plate_id),data = d_own)
+
+anova(m.lmer1,m.lmer2)
+anova(m.lmer1,m.lmer3)
+
+#It seems lmer must contain a random effect?
+#If m.lmer1 is the best model?
+```
