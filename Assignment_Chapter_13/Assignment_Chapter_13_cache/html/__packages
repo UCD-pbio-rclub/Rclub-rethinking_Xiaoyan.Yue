@@ -1,0 +1,10 @@
+base
+ggplot2
+StanHeaders
+rstan
+rethinking
+reshape2
+Rcpp
+brms
+MASS
+ellipse

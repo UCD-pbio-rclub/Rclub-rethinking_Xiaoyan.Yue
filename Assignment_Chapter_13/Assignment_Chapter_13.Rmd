@@ -1,0 +1,430 @@
+---
+title: "Chapter_13"
+author: "Xiaoyan Yue"
+date: "1/24/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache= TRUE, autodep = TRUE)
+
+library(rethinking)
+library(reshape2)
+library(ggplot2)
+library(brms)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+##13E1 Add to the following model varying slopes on the predictor
+Yi ~ Normal(mu,sigma)  
+mu = a_cafe[cafe_id] + b_cafe*Xi  
+a_cafe[cafe_id] ~ Normal(a,sigma_a)  
+a ~ Normal(0,10)  
+b_cafe ~ Normal(0,1)  
+sigma ~ HalfCauchy(0,2)  
+sigma_a ~ HalfCauchy(0,2)
+
+###Adding varying slops
+Yi ~ Normal(mu,sigma)  
+mu = a_cafe[cafe_id] + b_cafe[cafe_id]*Xi  
+c(a_cafe,b_cafe)[cafe_id] ~ MVNormal(c(a,b),S)  
+S=matrix(sigma_a,0,0,sigma_b) R matrix(sigma_a,0,0,sigma_b)  
+a ~ Normal(0,10)  
+b ~ Normal(0,1)  
+sigma ~ HalfCauchy(0,2)  
+sigma_a ~ HalfCauchy(0,2)  
+sigma_b ~ HalfCauchy(0,2)  
+R ~ LKJcorr(2)
+##13E2 Think up a context in which varying intercepts will be positively correlated with varying slopes. Provide a mechnistic explaination for correlation.
+
+##13M1 Repeat the cafe robot simulation from the beginning of the chapter. This time, set rho to zero, so that there is no correlation between intercepts and slops. How does the posterior distribution of the correlation reflect in the underlying simulation?
+
+###repeat the simulation in the chapter
+```{r}
+a <- 3.5            ## average morning wait time
+b <- (-1)           ## average difference afternoon wait time
+sigma_a <- 1        ## std dev in intercepts
+sigma_b <- 0.5      ## std dev in slopes
+rho <- (-0.7)       ## correlation between intercepts and slopes
+
+##simulate a sample of cafe for the robot, to build a 2D multivate Gaussian distribution
+Mu <- c( a , b )# create a vector of two means
+
+cov_ab <- sigma_a*sigma_b*rho#build the entire covariance matrix
+Sigma <- matrix( c(sigma_a^2,cov_ab,cov_ab,sigma_b^2) , ncol=2 )
+
+## simulate some cafes
+N_cafes <- 20
+
+## simulate their properties by sampling randomly from the multivariate Gaussian distribution
+library(MASS)
+set.seed(5) # used to replicate example
+vary_effects <- mvrnorm( N_cafes , Mu , Sigma )
+a_cafe <- vary_effects[,1]
+b_cafe <- vary_effects[,2]
+#simulate the observations
+N_visits <- 10
+afternoon <- rep(0:1,N_visits*N_cafes/2)
+cafe_id <- rep( 1:N_cafes , each=N_visits )
+mu <- a_cafe[cafe_id] + b_cafe[cafe_id]*afternoon
+sigma <- 0.5  # std dev within cafes
+wait <- rnorm( N_visits*N_cafes , mu , sigma )
+d <- data.frame( cafe=cafe_id , afternoon=afternoon , wait=wait )
+
+## fit the model for the observation data, d
+m13.1 <- map2stan(
+  alist(
+    wait ~ dnorm( mu , sigma ),
+    mu <- a_cafe[cafe] + b_cafe[cafe]*afternoon,
+    c(a_cafe,b_cafe)[cafe] ~ dmvnorm2(c(a,b),sigma_cafe,Rho),
+    a ~ dnorm(0,10),
+    b ~ dnorm(0,10),
+    sigma_cafe ~ dcauchy(0,2),
+    sigma ~ dcauchy(0,2),
+    Rho ~ dlkjcorr(2)
+  ) ,
+  data=d ,
+  iter=5000 , warmup=2000 , chains=2 )
+```
+
+###simulate the data by setting rho to zero
+```{r}
+rho <- 0
+
+cov_abM1 <- sigma_a*sigma_b*rho
+SigmaM1 <- matrix( c(sigma_a^2,cov_abM1,cov_abM1,sigma_b^2) , ncol=2 )
+
+vary_effectsM1 <- mvrnorm( N_cafes , Mu , SigmaM1 )
+a_cafeM1 <- vary_effectsM1[,1]
+b_cafeM1 <- vary_effectsM1[,2]
+
+#simulate d2
+N_visits <- 10
+afternoon <- rep(0:1,N_visits*N_cafes/2)
+cafe_id <- rep( 1:N_cafes , each=N_visits )
+mu_M1 <- a_cafeM1[cafe_id] + b_cafeM1[cafe_id]*afternoon
+sigma <- 0.5  
+wait_M1 <- rnorm( N_visits*N_cafes , mu_M1 , sigma )
+d2 <- data.frame( cafe=cafe_id , afternoon=afternoon , wait=wait_M1 )
+
+## fit the model for the observation data, d2
+m13.1.M1 <- map2stan(
+  alist(
+    wait_M1 ~ dnorm( mu , sigma ),
+    mu <- a_cafe[cafe] + b_cafe[cafe]*afternoon,
+    c(a_cafe,b_cafe)[cafe] ~ dmvnorm2(c(a,b),sigma_cafe,Rho),
+    a ~ dnorm(0,10),
+    b ~ dnorm(0,10),
+    sigma_cafe ~ dcauchy(0,2),
+    sigma ~ dcauchy(0,2),
+    Rho ~ dlkjcorr(2)
+  ) ,
+  data=d2 ,
+  iter=5000 , warmup=2000 , chains=2 )
+```
+
+## look at the posterior distribution of the correlation
+```{r}
+par(mfrow=c(1,2))
+post1 <- extract.samples(m13.1)
+dens( post1$Rho[,1,2] )
+post2 <- extract.samples(m13.1.M1)
+dens( post2$Rho[,1,2] )
+```
+
+##13M2 Fit the mutilevel model to the simulated cafe data
+```{r}
+m13.1.M2 <- map2stan(
+  alist(
+    wait ~ dnorm( mu , sigma ),
+    mu <- a_cafe[cafe] + b_cafe[cafe]*afternoon,
+    a_cafe[cafe] ~ dnorm(a,sigma_a),
+    b_cafe[cafe] ~ dnorm(b,sigma_b),
+    a ~ dnorm(0,10),
+    b ~ dnorm(0,10),
+    sigma_a ~ dcauchy(0,1),
+    sigma_b ~ dcauchy(0,1),
+    sigma ~ dcauchy(0,1)
+  ) ,
+  data=d ,
+  iter=5000 , warmup=2000 , chains=2 )
+```
+
+#compare this model to the model from the chapter
+```{r}
+#WAIC(m13.1, m13.1.M2) 
+#Error in UseMethod("WAIC") : no applicable method for 'WAIC' applied to an object of class "map2stan"
+compare(m13.1, m13.1.M2) #looks almost the same
+```
+
+##13M3 Using a non-centered parameterization, to re-estimate the varing slops model for UCBadmit data
+###repeat the varing slops model in the chapter
+```{r}
+data(UCBadmit)
+d <- UCBadmit
+d$male <- ifelse( d$applicant.gender=="male" , 1 , 0 )
+d$dept_id <- coerce_index( d$dept )
+
+m13.3 <- map2stan(
+  alist(
+    admit ~ dbinom( applications , p ),
+    logit(p) <- a_dept[dept_id] +
+      bm_dept[dept_id]*male,
+    c(a_dept,bm_dept)[dept_id] ~ dmvnorm2( c(a,bm) , sigma_dept , Rho ),
+    a ~ dnorm(0,10),
+    bm ~ dnorm(0,1),
+    sigma_dept ~ dcauchy(0,2),
+    Rho ~ dlkjcorr(2)
+  ) ,
+  data=d , warmup=1000 , iter=5000 , chains=4 , cores=3 )
+```
+##non-centered parameterization
+```{r}
+m13.3.M3 <- map2stan(
+  alist(
+    admit ~ dbinom( applications , p ),
+    logit(p) <- a_dept[dept_id] +
+      bm_dept[dept_id]*male,
+    c(a_dept,bm_dept)[dept_id] ~ dmvnormNC( sigma_dept , Rho ),
+    a ~ dnorm(0,10),
+    bm ~ dnorm(0,1),
+    sigma_dept ~ dcauchy(0,2),
+    Rho ~ dlkjcorr(2)
+  ) ,
+  data=d , warmup=1000 , iter=5000 , chains=4 , cores=3 )
+```
+
+##13H1 Revisit the Bangladesh fertility data
+```{r}
+#load the data
+data("bangladesh")
+summary(bangladesh)
+
+bangladesh$district_id <- coerce_index( bangladesh$district )
+names(bangladesh) <- sub(".","_",fixed = TRUE,names(bangladesh))
+
+###fit the model with varying slops
+m13H1 <- map2stan(
+  alist(
+    use_contraception ~ dnorm( mu , sigma ),
+    mu <- a_district[district_id] + b_district[district_id]*urban,
+    c(a_district,b_district)[district_id] ~ dmvnorm2(c(a,b),sigma_district,Rho),
+    a ~ dnorm(0,10),
+    b ~ dnorm(0,10),
+    sigma_district ~ dcauchy(0,2),
+    sigma ~ dcauchy(0,2),
+    Rho ~ dlkjcorr(2)
+  ) ,
+  data=bangladesh ,
+  iter=5000 , warmup=2000 , chains=2 )
+
+###Inspect the correlation between the intercept and slopes
+post <- extract.samples(m13H1)
+dens( post$Rho[,1,2])
+```
+###Plot the mean varying effect estimates for both the intercepts and slopes by district
+```{r}
+#### compute unpooled estimates directly from data
+
+a1 <- sapply( c(unique(bangladesh$district_id)) ,
+              function(i) mean(bangladesh$use_contraception[bangladesh$district_id==i & bangladesh$urban==0]) )
+a1[is.nan(a1)] <- 0 #some NaN in data making some errors later
+
+b1 <- sapply( c(unique(bangladesh$district_id)) ,
+              function(i) mean(bangladesh$use_contraception[bangladesh$district_id==i & bangladesh$urban==1]) ) - a1
+b1[is.nan(b1)] <- 0
+#### compute mean of partially pooled estimates
+a2 <- apply(post$a_district,2,mean)
+b2 <- apply(post$b_district,2,mean)
+
+#### plot both and connect with lines
+plot( a1 , b1 , xlab="intercept" , ylab="slope" ,
+      pch=16 , col=rangi2 , ylim=c( min(b1)-0.1 , max(b1)+0.1 ) ,
+      xlim=c( min(a1)-0.1 , max(a1)+0.1 ) )
+points( a2 , b2 , pch=1 )
+for ( i in c(unique(bangladesh$district_id)) ) lines( c(a1[i],a2[i]) , c(b1[i],b2[i]) )
+
+#compute posterior mean bivariate Gaussian
+Mu_est <- c( mean(post$a) , mean(post$b) )
+rho_est <- mean( post$Rho[,1,2] )
+sa_est <- mean( post$sigma_district[,1] )
+sb_est <- mean( post$sigma_district[,2] )
+cov_ab <- sa_est*sb_est*rho_est
+Sigma_est <- matrix( c(sa_est^2,cov_ab,cov_ab,sb_est^2) , ncol=2 )
+
+# draw contours
+library(ellipse)
+for ( l in c(0.1,0.3,0.5,0.8,0.99) )
+  lines(ellipse(Sigma_est,centre=Mu_est,level=l),
+        col=col.alpha("black",0.2))
+```
+###Plot predicted proportion of woman using contraception, with urban woman on one axies and rural on the other
+```{r}
+## convert varying effects to the proportion of woman using contraception
+use_contraception_rural_1 <- (a1)
+use_contraception_urban_1 <- (a1 + b1)
+
+use_contraception_rural_2 <- (a2)
+use_contraception_urban_2 <- (a2 + b2)
+
+# plot both and connect with lines
+plot( use_contraception_rural_1 , use_contraception_urban_1 , xlab="rural woman" , ylab="urban woman" ,
+      pch=16 , col=rangi2 , ylim=c( min(use_contraception_urban_1)-0.1 , max(use_contraception_urban_1)+0.1 ) ,
+      xlim=c( min(use_contraception_rural_1)-0.1 , max(use_contraception_rural_1)+0.1 ) )
+points( use_contraception_rural_2 , use_contraception_urban_2 , pch=1 )
+for ( i in c(unique(bangladesh$district_id)) ) lines( c(use_contraception_rural_1[i],use_contraception_rural_2[i]) , c(use_contraception_urban_1[i],use_contraception_urban_2[i]) )
+
+#compute posterior mean bivariate Gaussian
+Mu_est <- c( mean(post$a) , mean(post$b) )
+rho_est <- mean( post$Rho[,1,2] )
+sa_est <- mean( post$sigma_district[,1] )
+sb_est <- mean( post$sigma_district[,2] )
+cov_ab <- sa_est*sb_est*rho_est
+Sigma_est <- matrix( c(sa_est^2,cov_ab,cov_ab,sb_est^2) , ncol=2 )
+
+#draw contours
+library(ellipse)
+for ( l in c(0.1,0.3,0.5,0.8,0.99) )
+  lines(ellipse(Sigma_est,centre=Mu_est,level=l),
+        col=col.alpha("black",0.2))
+```
+
+
+##Try to fit the varing slopes model for my own data
+###Let's look at the whole data
+```{r}
+#load the data
+RSA_Jan <- read.csv("/Users/xyyue/Documents/Phosphrous_project/Data_Jan6th/results_rsa_all.csv")
+
+#subset the data for primary root length
+RSA_Jan_Proot <- RSA_Jan[,c("length","treatment","sample")] #length, which is the primary root length
+
+#look at the data
+head(RSA_Jan_Proot)
+str(RSA_Jan_Proot)
+summary(RSA_Jan_Proot)
+hist(RSA_Jan_Proot$length)
+```
+###Plot the raw data (it looks so crowded,how can I split them into several subsets?)
+```{r}
+###set the reference
+RSA_Jan$sample <- relevel(RSA_Jan$sample,ref = "M82")
+RSA_Jan$treatment <- relevel(RSA_Jan$treatment,ref = "P_sufficient")
+
+source("/Users/xyyue/function.R")
+p <- ggplot(data=RSA_Jan,aes(x=treatment,y=length,color=treatment)) 
+p <- p + geom_jitter()
+p <- p + stat_summary(fun.y="mean",geom="bar",alpha=0.5)
+p <- p + stat_summary(fun.data="calc.sem",geom="errorbar",position="dodge") 
+p <- p + facet_grid(.~sample)
+p <- p + labs(title="Primary Root Length")
+p
+```
+  
+###fit model by map2stan  
+####fit the model with varing slopes
+```{r}
+RSA_Jan_Proot$P_limited <- ifelse( RSA_Jan_Proot$treatment=="P_limited" , 1 , 0 )
+RSA_Jan_Proot$genotype_id <- coerce_index( RSA_Jan_Proot$sample)
+
+m_rsa_pl.with <- map2stan(
+  alist(
+    length ~ dnorm( mu , sigma ),
+    mu <- a_genotype[genotype_id] + b_genotype[genotype_id]*P_limited,
+    c(a_genotype,b_genotype)[genotype_id] ~ dmvnorm2(c(a,b),sigma_genotype,Rho),
+    a ~ dnorm(10,20),
+    b ~ dnorm(0,10),
+    sigma_genotype ~ dcauchy(0,2),
+    sigma ~ dcauchy(0,2),
+    Rho ~ dlkjcorr(2)
+  ) ,
+  data=RSA_Jan_Proot , warmup=1000 , iter=5000 , chains=4 , cores=3 )
+```
+
+  
+###Inspect the correlation between the intercept and slopes
+```{r}
+post <- extract.samples(m_rsa_pl.with)
+dens( post$Rho[,1,2])
+```
+  
+###Plot the mean varying effect estimates for both the intercepts and slopes by genotypes
+```{r}
+#### compute unpooled estimates directly from data
+a1 <- sapply( c(unique(RSA_Jan_Proot$genotype_id)) ,
+              function(i) mean(RSA_Jan_Proot$length[RSA_Jan_Proot$genotype_id==i & RSA_Jan_Proot$P_limited==0]) )
+a1[is.nan(a1)] <- 0 #some NaN in data making some errors later
+
+b1 <- sapply( c(unique(RSA_Jan_Proot$genotype_id)) ,
+              function(i) mean(RSA_Jan_Proot$length[RSA_Jan_Proot$genotype_id==i & RSA_Jan_Proot$P_limited==1]) ) - a1
+b1[is.nan(b1)] <- 0
+#### compute mean of partially pooled estimates
+a2 <- apply(post$a_genotype,2,mean)
+b2 <- apply(post$b_genotype,2,mean)
+
+#### plot both and connect with lines
+plot( a1 , b1 , xlab="intercept" , ylab="slope" ,
+      pch=16 , col=rangi2 , ylim=c( min(b1)-0.1 , max(b1)+0.1 ) ,
+      xlim=c( min(a1)-0.1 , max(a1)+0.1 ) )
+points( a2 , b2 , pch=1 )
+for ( i in c(unique(RSA_Jan_Proot$genotype_id)) ) lines( c(a1[i],a2[i]) , c(b1[i],b2[i]) )
+
+#compute posterior mean bivariate Gaussian
+Mu_est <- c( mean(post$a) , mean(post$b) )
+rho_est <- mean( post$Rho[,1,2] )
+sa_est <- mean( post$sigma_genotype[,1] )
+sb_est <- mean( post$sigma_genotype[,2] )
+cov_ab <- sa_est*sb_est*rho_est
+Sigma_est <- matrix( c(sa_est^2,cov_ab,cov_ab,sb_est^2) , ncol=2 )
+
+# draw contours
+library(ellipse)
+for ( l in c(0.1,0.3,0.5,0.8,0.99) )
+  lines(ellipse(Sigma_est,centre=Mu_est,level=l),
+        col=col.alpha("black",0.2))
+```
+  
+###look into the model
+```{r}
+precis(m_rsa_pl.with,depth = 2)
+```
+  
+###fit the model without varing slopes
+```{r}
+m_rsa_pl.without <- map2stan(
+  alist(
+    length ~ dnorm( mu , sigma ),
+    mu <- a_genotype[genotype_id] + bT*P_limited,
+    a_genotype[genotype_id] ~ dnorm(a,sigma_genotype),
+    a ~ dnorm(10,20),
+    bT ~ dnorm(0,10),
+    sigma_genotype ~ dcauchy(0,2),
+    sigma ~ dcauchy(0,2)
+  ) ,
+  data=RSA_Jan_Proot , warmup=1000 , iter=5000 , chains=4 , cores=3 )
+```
+
+  
+###compare two models
+```{r}
+compare(m_rsa_pl.with,m_rsa_pl.without)
+```
+  
+###fit the model by brms
+```{r}
+RSA_Jan_Proot$sample <- relevel(RSA_Jan_Proot$sample,ref = "M82")
+RSA_Jan_Proot$treatment <- relevel(RSA_Jan_Proot$treatment,ref = "P_sufficient")
+
+m_rsa_pl.brms <- brm(length ~ sample * treatment ,#the average of random effect is 0, so the estimate is the standard deviation
+            data = RSA_Jan_Proot,
+            prior = c(
+              set_prior("normal(10,20)",class="Intercept"),
+              set_prior("normal(0,10)",class="b"),
+              set_prior("cauchy(0,2)", class = "sigma"))) #half cauchy prior for sigma))#sets the same prior for beta coefficients, the others are as default
+summary(m_rsa_pl.brms)
+```
+
