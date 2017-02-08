@@ -1,19 +1,31 @@
-unnamed-chunk-1	^	~	alist	c	cafe	data.frame	library	map2stan	matrix	mvrnorm	rep	rnorm	set.seed
-unnamed-chunk-2	^	~	a_cafe	alist	b_cafe	c	cafe	data.frame	map2stan	matrix	Mu	mvrnorm	N_cafes	rep	rnorm	sigma_a	sigma_b
+unnamed-chunk-1	^	~	alist	c	cafe	data.frame	library	map2stan	matrix	mvrnorm	precis	rep	rnorm	set.seed
+unnamed-chunk-2	^	~	a	a_cafe	alist	b	b_cafe	c	cafe	data.frame	map2stan	matrix	mvrnorm	precis	rep	rnorm	sigma_a	sigma_b
 unnamed-chunk-3	$	c	dens	extract.samples	m13.1	m13.1.M1	par
 unnamed-chunk-4	~	a_cafe	afternoon	alist	b_cafe	cafe	d	map2stan
 unnamed-chunk-5	compare	m13.1	m13.1.M2
-unnamed-chunk-6	==	~	$	$<-	a_dept	alist	bm_dept	coerce_index	data	dept_id	ifelse	logit<-	male	map2stan	UCBadmit
-unnamed-chunk-7	~	a_dept	alist	bm_dept	d	dept_id	logit<-	male	map2stan
-unnamed-chunk-8	~	$	$<-	a_district	alist	b_district	coerce_index	data	dens	district_id	extract.samples	map2stan	names	names<-	sub	summary	urban
-unnamed-chunk-9	[<-	&	^	==	$	apply	bangladesh	c	col.alpha	ellipse	for	is.nan	library	lines	matrix	max	mean	min	plot	points	post	rangi2	sapply	unique
-unnamed-chunk-10	^	$	a1	a2	b1	b2	bangladesh	c	col.alpha	ellipse	for	library	lines	matrix	max	mean	min	plot	points	post	rangi2	unique
-unnamed-chunk-11	$	c	head	hist	read.csv	str	summary
-unnamed-chunk-12	~	$	$<-	aes	facet_grid	geom_jitter	ggplot	labs	length	relevel	source	stat_summary	treatment
-unnamed-chunk-13	==	~	$	$<-	a_genotype	alist	b_genotype	coerce_index	genotype_id	ifelse	map2stan	P_limited
-unnamed-chunk-14	$	dens	extract.samples	m_rsa_pl.with
-unnamed-chunk-15	[<-	&	^	==	$	apply	c	col.alpha	ellipse	for	is.nan	library	lines	matrix	max	mean	min	plot	points	post	rangi2	RSA_Jan_Proot	sapply	unique
-unnamed-chunk-16	m_rsa_pl.with	precis
-unnamed-chunk-17	~	a_genotype	alist	bT	genotype_id	map2stan	P_limited	RSA_Jan_Proot
-unnamed-chunk-18	compare	m_rsa_pl.with	m_rsa_pl.without
-unnamed-chunk-19	~	$	$<-	brm	c	relevel	set_prior	summary
+unnamed-chunk-6	==	~	$	$<-	a_dept	alist	bm_dept	coerce_index	colnames	colnames<-	data	dept_id	ifelse	logit<-	male	map2stan	sub	UCBadmit
+unnamed-chunk-7	~	a	a_dept	alist	bm	bm_dept	d	dept_id	logit<-	male	map2stan
+unnamed-chunk-8	@	$	m13.3	m13.3.NC	precis
+unnamed-chunk-9	boxplot	list	neff_c	neff_nc
+unnamed-chunk-10	~	$	$<-	a_district	alist	b_district	coerce_index	data	dens	district_id	extract.samples	map2stan	names	names<-	sub	summary	urban
+unnamed-chunk-11	[<-	&	^	==	$	apply	bangladesh	c	col.alpha	ellipse	for	is.nan	library	lines	matrix	max	mean	min	plot	points	post	rangi2	sapply	unique
+unnamed-chunk-12	^	$	a1	a2	b1	b2	bangladesh	c	col.alpha	ellipse	for	library	lines	matrix	max	mean	min	plot	points	post	rangi2	unique
+unnamed-chunk-13	$	c	head	hist	read.csv	str	summary
+unnamed-chunk-14	~	$	$<-	aes	facet_grid	geom_jitter	ggplot	labs	length	relevel	source	stat_summary	treatment
+unnamed-chunk-15	==	~	$	$<-	a_genotype	alist	b_genotype	coerce_index	genotype_id	ifelse	map2stan	P_limited
+unnamed-chunk-16	$	dens	extract.samples	m_rsa_pl.with
+unnamed-chunk-17	[<-	&	^	==	$	apply	c	col.alpha	ellipse	for	is.nan	library	lines	matrix	max	mean	min	plot	points	post	rangi2	RSA_Jan_Proot	sapply	unique
+unnamed-chunk-18	m_rsa_pl.with	precis
+unnamed-chunk-19	~	a_genotype	alist	bT	genotype_id	map2stan	P_limited	RSA_Jan_Proot
+unnamed-chunk-20	compare	m_rsa_pl.with	m_rsa_pl.without
+unnamed-chunk-21	~	$	$<-	brm	c	relevel	set_prior	summary
+unnamed-chunk-22	~	$	$<-	a	alist	bp	data	g	islandsDistMatrix	Kline2	list	log<-	logpop	map2stan	society
+unnamed-chunk-23	==	~	$	$<-	a	alist	bc	bp	bpc	contact_high	ifelse	log	log_pop	log<-	map	map2stan
+unnamed-chunk-24	~	$	$<-	a	alist	bc	bcp	bp	contact_high	log_pop_c	log<-	map2stan	mean
+unnamed-chunk-25	compare	m10.10stan	m10.10stan.c	m13.7
+unnamed-chunk-26	@	$	m10.10stan	m10.10stan.c	m13.7	precis
+unnamed-chunk-27	boxplot	list	neff_10.10stan	neff_10.10stan.c	neff_13.7
+unnamed-chunk-28	data	Oxboys	str	summary
+unnamed-chunk-29	~	a_subject	age	alist	b_subject	map2stan	Oxboys	Subject
+unnamed-chunk-30	m13H2	precis
+unnamed-chunk-31	$	dens	extract.samples	m13H2

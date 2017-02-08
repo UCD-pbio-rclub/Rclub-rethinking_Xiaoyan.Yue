@@ -1,19 +1,31 @@
-unnamed-chunk-1	a	a_cafe	afternoon	b	b_cafe	cafe_id	cov_ab	d	m13.1	mu	Mu	N_cafes	N_visits	rho	sigma	Sigma	sigma_a	sigma_b	vary_effects	wait	.__C__Rcpp_stan_fit4model8335829a673_wait___dnorm_mu__sigma_	.__global__	.requireCachedGenerics
-unnamed-chunk-2	a_cafeM1	afternoon	b_cafeM1	cafe_id	cov_abM1	d2	m13.1.M1	mu	mu_M1	N_visits	rho	sigma	SigmaM1	vary_effectsM1	wait_M1	.__C__Rcpp_stan_fit4model83373dd02d8_wait_M1___dnorm_mu__sigma_
+unnamed-chunk-1	a	a_cafe	afternoon	b	b_cafe	cafe_id	cov_ab	d	m13.1	mu	Mu	N_cafes	N_visits	rho	sigma	Sigma	sigma_a	sigma_b	vary_effects	wait	.__C__Rcpp_stan_fit4model116a1d265e55_wait___dnorm_mu__sigma_	.__global__	.requireCachedGenerics
+unnamed-chunk-2	a_cafe_M1	afternoon	b_cafe_M1	cafe_id	cov_abM1	d2	m13.1.M1	mu	Mu	mu_M1	N_cafes	N_visits	rho	sigma	SigmaM1	vary_effectsM1	wait_M1	.__C__Rcpp_stan_fit4model13f57c482cd9_wait___dnorm_mu__sigma_
 unnamed-chunk-3	post1	post2
-unnamed-chunk-4	m13.1.M2	mu	.__C__Rcpp_stan_fit4model83324423aac_wait___dnorm_mu__sigma_
+unnamed-chunk-4	m13.1.M2	mu	.__C__Rcpp_stan_fit4model13f531ac0144_wait___dnorm_mu__sigma_
 unnamed-chunk-5	
-unnamed-chunk-6	d	m13.3	.__C__Rcpp_stan_fit4model8332a3fa365_admit___dbinom_applications__p_	UCBadmit
-unnamed-chunk-7	m13.3.M3	.__C__Rcpp_stan_fit4model83322f56406_admit___dbinom_applications__p_
-unnamed-chunk-8	bangladesh	m13H1	mu	post	.__C__Rcpp_stan_fit4model8337ae3063d_use_contraception___dnorm_mu__sigma_
-unnamed-chunk-9	a1	a2	b1	b2	cov_ab	i	l	Mu_est	rho_est	sa_est	sb_est	Sigma_est
-unnamed-chunk-10	cov_ab	i	l	Mu_est	rho_est	sa_est	sb_est	Sigma_est	use_contraception_rural_1	use_contraception_rural_2	use_contraception_urban_1	use_contraception_urban_2
-unnamed-chunk-11	RSA_Jan	RSA_Jan_Proot
-unnamed-chunk-12	p	RSA_Jan	calc.sem	model2d.lmer	object.name	plot.bar6	vlookup
-unnamed-chunk-13	m_rsa_pl.with	mu	RSA_Jan_Proot	.__C__Rcpp_stan_fit4model83327de8620_length___dnorm_mu__sigma_
-unnamed-chunk-14	post
-unnamed-chunk-15	a1	a2	b1	b2	cov_ab	i	l	Mu_est	rho_est	sa_est	sb_est	Sigma_est
-unnamed-chunk-16	
-unnamed-chunk-17	m_rsa_pl.without	mu	.__C__Rcpp_stan_fit4model83337310d16_length___dnorm_mu__sigma_
+unnamed-chunk-6	d	m13.3	.__C__Rcpp_stan_fit4model116ae0e8c17_admit___dbinom_applications__p_	UCBadmit
+unnamed-chunk-7	m13.3.NC	.__C__Rcpp_stan_fit4model14726502e733_admit___dbinom_applications__p_
+unnamed-chunk-8	neff_c	neff_nc
+unnamed-chunk-9	
+unnamed-chunk-10	bangladesh	m13H1	mu	post	.__C__Rcpp_stan_fit4model14721170e2b5_use_contraception___dnorm_mu__sigma_
+unnamed-chunk-11	a1	a2	b1	b2	cov_ab	i	l	Mu_est	rho_est	sa_est	sb_est	Sigma_est
+unnamed-chunk-12	cov_ab	i	l	Mu_est	rho_est	sa_est	sb_est	Sigma_est	use_contraception_rural_1	use_contraception_rural_2	use_contraception_urban_1	use_contraception_urban_2
+unnamed-chunk-13	RSA_Jan	RSA_Jan_Proot
+unnamed-chunk-14	p	RSA_Jan	calc.sem	model2d.lmer	object.name	plot.bar6	vlookup
+unnamed-chunk-15	m_rsa_pl.with	mu	RSA_Jan_Proot	.__C__Rcpp_stan_fit4model14728e05e73_length___dnorm_mu__sigma_
+unnamed-chunk-16	post
+unnamed-chunk-17	a1	a2	b1	b2	cov_ab	i	l	Mu_est	rho_est	sa_est	sb_est	Sigma_est
 unnamed-chunk-18	
-unnamed-chunk-19	m_rsa_pl.brms	RSA_Jan_Proot	.__C__Rcpp_stan_fit4model9ac248c96da_file9ac4762c17b
+unnamed-chunk-19	m_rsa_pl.without	mu	.__C__Rcpp_stan_fit4model147256d562a9_length___dnorm_mu__sigma_
+unnamed-chunk-20	
+unnamed-chunk-21	m_rsa_pl.brms	RSA_Jan_Proot	.__C__Rcpp_stan_fit4model14726bb25208_file1472167eff69
+unnamed-chunk-22	d	m13.7	.__C__Rcpp_stan_fit4model14723619f04e_total_tools___dpois_lambda_	islandsDistMatrix	Kline2
+unnamed-chunk-23	d	m10.10	m10.10stan	.__C__Rcpp_stan_fit4model14725eb26d16_total_tools___dpois_lambda_
+unnamed-chunk-24	d	m10.10stan.c	.__C__Rcpp_stan_fit4model14723aef61bf_total_tools___dpois_lambda_
+unnamed-chunk-25	
+unnamed-chunk-26	neff_10.10stan	neff_10.10stan.c	neff_13.7
+unnamed-chunk-27	
+unnamed-chunk-28	Oxboys
+unnamed-chunk-29	m13H2	mu	.__C__Rcpp_stan_fit4model14725924f9dd_height___dnorm_mu__sigma_
+unnamed-chunk-30	
+unnamed-chunk-31	postH2

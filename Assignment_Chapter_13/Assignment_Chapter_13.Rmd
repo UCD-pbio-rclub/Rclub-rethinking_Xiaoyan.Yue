@@ -89,32 +89,41 @@ m13.1 <- map2stan(
   ) ,
   data=d ,
   iter=5000 , warmup=2000 , chains=2 )
+
+precis(m13.1,depth = 2)
 ```
 
 ###simulate the data by setting rho to zero
 ```{r}
-rho <- 0
+rho <- 0       ## correlation between intercepts and slopes
 
-cov_abM1 <- sigma_a*sigma_b*rho
+##simulate a sample of cafe for the robot, to build a 2D multivate Gaussian distribution
+Mu <- c( a , b )# create a vector of two means
+
+cov_abM1 <- sigma_a*sigma_b*rho #build the entire covariance matrix
 SigmaM1 <- matrix( c(sigma_a^2,cov_abM1,cov_abM1,sigma_b^2) , ncol=2 )
 
-vary_effectsM1 <- mvrnorm( N_cafes , Mu , SigmaM1 )
-a_cafeM1 <- vary_effectsM1[,1]
-b_cafeM1 <- vary_effectsM1[,2]
+## simulate some cafes
+N_cafes <- 20
 
-#simulate d2
+## simulate their properties by sampling randomly from the multivariate Gaussian distribution
+vary_effectsM1 <- mvrnorm( N_cafes , Mu , SigmaM1 )
+a_cafe_M1 <- vary_effectsM1[,1]
+b_cafe_M1 <- vary_effectsM1[,2]
+
+#simulate the observations
 N_visits <- 10
 afternoon <- rep(0:1,N_visits*N_cafes/2)
 cafe_id <- rep( 1:N_cafes , each=N_visits )
-mu_M1 <- a_cafeM1[cafe_id] + b_cafeM1[cafe_id]*afternoon
-sigma <- 0.5  
+mu_M1 <- a_cafe_M1[cafe_id] + b_cafe_M1[cafe_id]*afternoon
+sigma <- 0.5  # std dev within cafes
 wait_M1 <- rnorm( N_visits*N_cafes , mu_M1 , sigma )
 d2 <- data.frame( cafe=cafe_id , afternoon=afternoon , wait=wait_M1 )
 
 ## fit the model for the observation data, d2
 m13.1.M1 <- map2stan(
   alist(
-    wait_M1 ~ dnorm( mu , sigma ),
+    wait ~ dnorm( mu , sigma ),
     mu <- a_cafe[cafe] + b_cafe[cafe]*afternoon,
     c(a_cafe,b_cafe)[cafe] ~ dmvnorm2(c(a,b),sigma_cafe,Rho),
     a ~ dnorm(0,10),
@@ -125,6 +134,8 @@ m13.1.M1 <- map2stan(
   ) ,
   data=d2 ,
   iter=5000 , warmup=2000 , chains=2 )
+
+precis(m13.1.M1,depth = 2)
 ```
 
 ## look at the posterior distribution of the correlation
@@ -168,6 +179,7 @@ data(UCBadmit)
 d <- UCBadmit
 d$male <- ifelse( d$applicant.gender=="male" , 1 , 0 )
 d$dept_id <- coerce_index( d$dept )
+colnames(d) <- sub(".","_",colnames(d),fixed = TRUE)
 
 m13.3 <- map2stan(
   alist(
@@ -181,13 +193,14 @@ m13.3 <- map2stan(
     Rho ~ dlkjcorr(2)
   ) ,
   data=d , warmup=1000 , iter=5000 , chains=4 , cores=3 )
+
 ```
 ##non-centered parameterization
 ```{r}
-m13.3.M3 <- map2stan(
+m13.3.NC <- map2stan(
   alist(
     admit ~ dbinom( applications , p ),
-    logit(p) <- a_dept[dept_id] +
+    logit(p) <- a + a_dept[dept_id] + bm * male + 
       bm_dept[dept_id]*male,
     c(a_dept,bm_dept)[dept_id] ~ dmvnormNC( sigma_dept , Rho ),
     a ~ dnorm(0,10),
@@ -196,6 +209,19 @@ m13.3.M3 <- map2stan(
     Rho ~ dlkjcorr(2)
   ) ,
   data=d , warmup=1000 , iter=5000 , chains=4 , cores=3 )
+
+```
+## extract n_eff values for each model
+```{r}
+neff_c <- precis(m13.3,2)@output$n_eff
+neff_c
+neff_nc <- precis(m13.3.NC,2)@output$n_eff
+neff_nc
+```
+## plot distributions
+```{r}
+boxplot( list( 'm13.3'=neff_c , 'm13.3.NC'=neff_nc ) ,
+         ylab="effective samples" , xlab="model" )
 ```
 
 ##13H1 Revisit the Bangladesh fertility data
@@ -428,3 +454,130 @@ m_rsa_pl.brms <- brm(length ~ sample * treatment ,#the average of random effect 
 summary(m_rsa_pl.brms)
 ```
 
+##13M4 Use WAIC to compare the Gaussian process model of Oceanic tools to the models fit to the same data in Chapter 10.
+###Repeat the model with Gaussian process in Chapter 13
+```{r}
+data(islandsDistMatrix)
+
+data(Kline2) # load the ordinary data, now with coordinates
+d <- Kline2
+d$society <- 1:10 # index observations
+
+m13.7 <- map2stan(
+  alist(
+    total_tools ~ dpois(lambda),
+    log(lambda) <- a + g[society] + bp*logpop,
+    g[society] ~ GPL2( Dmat , etasq , rhosq , 0.01 ),
+    a ~ dnorm(0,10),
+    bp ~ dnorm(0,1),
+    etasq ~ dcauchy(0,1),
+    rhosq ~ dcauchy(0,1)
+  ),
+  data=list(
+    total_tools=d$total_tools,
+    logpop=d$logpop,
+    society=d$society,
+    Dmat=islandsDistMatrix),
+  warmup=2000 , iter=1e4 , chains=4 )
+```
+###Repeat the model in Chapter 10
+```{r}
+# log the population
+d$log_pop <- log(d$population)
+# dummy variable
+d$contact_high <- ifelse( d$contact=="high" , 1 , 0 )
+
+m10.10 <- map(
+  alist(
+    total_tools ~ dpois( lambda ),
+    log(lambda) <- a + bp*log_pop +
+      bc*contact_high + bpc*contact_high*log_pop,
+    a ~ dnorm(0,100),
+    c(bp,bc,bpc) ~ dnorm(0,1)
+  ),
+  data=d )
+
+m10.10stan <- map2stan( m10.10 , iter=3000 , warmup=1000 , chains=4 )
+
+```
+###Repeat the model in Chapter 10 with centered predictor
+```{r}
+# construct centered predictor
+d$log_pop_c <- d$log_pop - mean(d$log_pop)
+
+# re-estimate
+m10.10stan.c <- map2stan(
+  alist(
+    total_tools ~ dpois( lambda ) ,
+    log(lambda) <- a + bp*log_pop_c + bc*contact_high +
+      bcp*log_pop_c*contact_high ,
+    a ~ dnorm(0,10) ,
+    bp ~ dnorm(0,1) ,
+    bc ~ dnorm(0,1) ,
+    bcp ~ dnorm(0,1)
+  ) ,
+  data=d , iter=3000 , warmup=1000 , chains=4 )
+```
+
+### Compare the three models
+```{r}
+compare(m13.7,m10.10stan,m10.10stan.c)
+```
+## extract n_eff values for each model
+```{r}
+neff_13.7 <- precis(m13.7,2)@output$n_eff
+neff_13.7
+neff_10.10stan <- precis(m10.10stan)@output$n_eff
+neff_10.10stan
+neff_10.10stan.c <- precis(m10.10stan.c)@output$n_eff
+neff_10.10stan.c
+
+```
+## plot distributions
+```{r}
+boxplot( list( 'm13.7'=neff_13.7 , 'm10.10stan'=neff_10.10stan, 'm10.10stan.c' = neff_10.10stan.c) ,
+         ylab="effective samples" , xlab="model" )
+``` 
+  
+###It seems that the model with Gaussian process has a higher level of the effective numbers of parameters.
+
+##13H2 Fit a model with varying intercepts and slopes (on age)
+###load the data
+```{r}
+data(Oxboys)
+Oxboys
+
+str(Oxboys)
+summary(Oxboys)
+```
+### Fit the model
+```{r}
+m13H2 <- map2stan(
+  alist(
+    height ~ dnorm( mu , sigma ),
+    mu <- a_subject[Subject] + b_subject[Subject]*age,
+    c(a_subject,b_subject)[Subject] ~ dmvnorm2(c(a,b),sigma_subject,Rho),
+    a ~ dnorm(150,30),
+    b ~ dnorm(0,10),
+    sigma_subject ~ dcauchy(0,2),
+    sigma ~ dcauchy(0,2),
+    Rho ~ dlkjcorr(2)
+  ) ,
+  data=Oxboys ,
+  iter=5000 , warmup=2000 , chains=2 )
+```
+###look into this model
+```{r}
+precis(m13H2,depth = 2)
+```
+  
+### From the estimated mean of sigma_suject[1] equals to 8, while the mean of sigma_subject[2] was around 1, I infer that the varying intercepts, subject, contribute more variations to the height.
+
+##13H3 Now consider the correlation between the varying intercepts and slopes
+### Plot the correlation between the varying intercepts and slopes
+```{r}
+postH2 <- extract.samples(m13H2)
+dens( postH2$Rho[,1,2] )
+```
+  
+### The correlation value is positive, so may be I would predict that in the same subject who was older that might have a taller height???
