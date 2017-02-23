@@ -20,10 +20,10 @@ options(mc.cores = parallel::detectCores())
 ```
 
 ##14E1  
-Ti ~ Poisson(mu)
-log(mu)= a + b*log(P_est)
-log(P_obs) ~ Normal (log(P_est),P_SD)
-a ~ Normal(0,10)
+Ti ~ Poisson(mu)  
+log(mu)= a + b*log(P_est)  
+log(P_obs) ~ Normal (log(P_est),P_SD)  
+a ~ Normal(0,10)  
 b ~ Normal(0,1)
 
 
