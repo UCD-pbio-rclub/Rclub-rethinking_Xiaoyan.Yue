@@ -1,0 +1,171 @@
+---
+title: "Chapter_14"
+author: "Xiaoyan Yue"
+date: "2/22/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##14E1  
+Ti ~ Poisson(mu)
+log(mu)= a + b*log(P_est)
+log(P_obs) ~ Normal (log(P_est),P_SD)
+a ~ Normal(0,10)
+b ~ Normal(0,1)
+
+
+##14M3
+```{r}
+###first, repeat model in the chapter
+library(rethinking)
+data(WaffleDivorce)
+d <- WaffleDivorce
+
+dlist <- list(
+  div_obs=d$Divorce,
+  div_sd=d$Divorce.SE,
+  R=d$Marriage,
+  A=d$MedianAgeMarriage
+)
+
+m14.1 <- map2stan(
+  alist(
+    div_est ~ dnorm(mu,sigma),
+    mu <- a + bA*A + bR*R,
+    div_obs ~ dnorm(div_est,div_sd),
+    a ~ dnorm(0,10),
+    bA ~ dnorm(0,10),
+    bR ~ dnorm(0,10),
+    sigma ~ dcauchy(0,2.5)
+  ) ,
+  data=dlist ,
+  start=list(div_est=dlist$div_obs) ,
+  WAIC=FALSE , iter=5000 , warmup=1000 , chains=2 , cores=2 ,
+  control=list(adapt_delta=0.95) )
+
+precis(m14.1,depth = 2)
+```
+
+###second, double the standard error
+```{r}
+data(WaffleDivorce)
+d <- WaffleDivorce
+
+d$Divorce.SE_double <- 2*d$Divorce.SE
+head(d)
+
+dlist <- list(
+  div_obs=d$Divorce,
+  div_sd=d$Divorce.SE_double,
+  R=d$Marriage,
+  A=d$MedianAgeMarriage
+)
+
+m14.M3 <- map2stan(
+  alist(
+    div_est ~ dnorm(mu,sigma),
+    mu <- a + bA*A + bR*R,
+    div_obs ~ dnorm(div_est,div_sd),
+    a ~ dnorm(0,10),
+    bA ~ dnorm(0,10),
+    bR ~ dnorm(0,10),
+    sigma ~ dcauchy(0,2.5)
+  ) ,
+  data=dlist ,
+  start=list(div_est=dlist$div_obs) ,
+  WAIC=FALSE , iter=5000 , warmup=1000 , chains=2 , cores=2,
+  control=list(adapt_delta=0.95))
+
+precis(m14.M3,depth = 2)
+```
+  
+###there is no many differences in the posterior of bA and bR between two models, but increasing the standard error of the outcome do decrease the posterior of the sigma in the model.
+
+
+###compare two models
+```{r}
+compare(m14.1,m14.M3)
+```
+
+##14H1  
+###load the data
+```{r}
+data("elephants")
+d1 <- elephants
+#look at the data
+head(d1)
+#log the AGE
+d1$log_age <- log(d1$AGE)
+str(d1)
+summary(d1)
+```
+  
+###fit a poisson model
+```{r}
+m14.H1 <- map2stan(
+  alist(
+    MATINGS ~ dpois( lambda ) ,
+    log(lambda) <- a + bA*log_age,
+    a ~ dnorm(0,10),
+    bA ~ dnorm(0,1)),
+  data=d1 , iter=3000 , warmup=1000 , chains=4 )
+
+precis(m14.H1,depth=2)
+```
+#fit a model with measurement errors with a standard error of +/- 5 years
+```{r}
+dlist <- list(
+  MATINGS = d1$MATINGS,
+  AGE_obs=d1$log_age,
+  AGE_sd=rep(log(5),length(d1$log_age))
+)
+
+m14.H1.sd <- map2stan(
+  alist(
+    MATINGS ~ dpois( lambda ) ,
+    log(lambda) <- a + bA*AGE_est[i],
+    AGE_obs ~ dnorm(AGE_est,AGE_sd),
+    a ~ dnorm(0,10),
+    bA ~ dnorm(0,1)),
+  data=dlist ,
+  start=list(AGE_est=dlist$AGE_obs) ,
+  WAIC=FALSE , iter=5000 , warmup=1000 , chains=2 , cores=2,
+  control=list(adapt_delta=0.95))
+
+precis(m14.H1.sd,depth = 2)
+
+```
+  
+###After including the standard errors, the positive relationship between age and matting are going to disappear. The posterior mean of b changed from 2.02 to 0.32.  
+
+  
+##14H2
+###increase the sd value to 100, make the posterior mean to reach zero 
+```{r}
+dlist <- list(
+  MATINGS = d1$MATINGS,
+  AGE_obs=d1$log_age,
+  AGE_sd=rep(log(100),length(d1$log_age))
+)
+
+m14.H1.sd.increase <- map2stan(
+  alist(
+    MATINGS ~ dpois( lambda ) ,
+    log(lambda) <- a + bA*AGE_est[i],
+    AGE_obs ~ dnorm(AGE_est,AGE_sd),
+    a ~ dnorm(0,10),
+    bA ~ dnorm(0,1)),
+  data=dlist ,
+  start=list(AGE_est=dlist$AGE_obs) ,
+  WAIC=FALSE , iter=5000 , warmup=1000 , chains=2 , cores=2,
+  control=list(adapt_delta=0.95))
+
+precis(m14.H1.sd.increase,depth = 2)
+```
+  
+###it is going to reache zero, when the standard error gets to 100.
