@@ -20,8 +20,8 @@ b ~ Normal(0,1)
 
 
 ##14M3
+###First, repeat model in the chapter
 ```{r}
-###first, repeat model in the chapter
 library(rethinking)
 data(WaffleDivorce)
 d <- WaffleDivorce
@@ -51,7 +51,7 @@ m14.1 <- map2stan(
 precis(m14.1,depth = 2)
 ```
 
-###second, double the standard error
+###Second, double the standard error
 ```{r}
 data(WaffleDivorce)
 d <- WaffleDivorce
@@ -84,16 +84,11 @@ m14.M3 <- map2stan(
 precis(m14.M3,depth = 2)
 ```
   
-###there is no many differences in the posterior of bA and bR between two models, but increasing the standard error of the outcome do decrease the posterior of the sigma in the model.
+###There is no many differences in the posterior of bA and bR between two models, but increasing the standard error of the outcome do decrease the posterior of the sigma in the model.
 
-
-###compare two models
-```{r}
-compare(m14.1,m14.M3)
-```
 
 ##14H1  
-###load the data
+###Load the data
 ```{r}
 data("elephants")
 d1 <- elephants
@@ -105,7 +100,7 @@ str(d1)
 summary(d1)
 ```
   
-###fit a poisson model
+###Fit a poisson model
 ```{r}
 m14.H1 <- map2stan(
   alist(
@@ -117,7 +112,7 @@ m14.H1 <- map2stan(
 
 precis(m14.H1,depth=2)
 ```
-#fit a model with measurement errors with a standard error of +/- 5 years
+###Fit a model with measurement errors with a standard error of +/- 5 years
 ```{r}
 dlist <- list(
   MATINGS = d1$MATINGS,
@@ -145,7 +140,7 @@ precis(m14.H1.sd,depth = 2)
 
   
 ##14H2
-###increase the sd value to 100, make the posterior mean to reach zero 
+###Increase the sd value to 100, make the posterior mean to reach zero 
 ```{r}
 dlist <- list(
   MATINGS = d1$MATINGS,
@@ -168,4 +163,4 @@ m14.H1.sd.increase <- map2stan(
 precis(m14.H1.sd.increase,depth = 2)
 ```
   
-###it is going to reache zero, when the standard error gets to 100.
+###It is going to reache zero, when the standard error gets to 100.
