@@ -1,1 +1,6 @@
 unnamed-chunk-1	~	$	a	A	alist	bA	bR	data	library	list	map2stan	precis	R	WaffleDivorce
+unnamed-chunk-2	~	$	$<-	a	A	alist	bA	bR	data	head	list	map2stan	precis	R	WaffleDivorce
+unnamed-chunk-3	$	$<-	data	elephants	head	log	str	summary
+unnamed-chunk-4	~	a	alist	bA	d1	log_age	log<-	map2stan	precis
+unnamed-chunk-5	~	$	a	AGE_est	alist	bA	d1	i	length	list	log	log<-	map2stan	precis	rep
+unnamed-chunk-6	~	$	a	AGE_est	alist	bA	d1	i	length	list	log	log<-	map2stan	precis	rep

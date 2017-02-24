@@ -1,1 +1,6 @@
 unnamed-chunk-1	d	dlist	m14.1	.__C__Rcpp_stan_fit4model1be57939c769_div_est___dnorm_mu__sigma_	.__global__	.requireCachedGenerics	WaffleDivorce
+unnamed-chunk-2	d	dlist	m14.M3	.__C__Rcpp_stan_fit4model28f2704a9a0_div_est___dnorm_mu__sigma_
+unnamed-chunk-3	d1	elephants
+unnamed-chunk-4	m14.H1	.__C__Rcpp_stan_fit4model28f7661e103_MATINGS___dpois_lambda_
+unnamed-chunk-5	dlist	m14.H1.sd	.__C__Rcpp_stan_fit4model28f5c311d7e_MATINGS___dpois_lambda_
+unnamed-chunk-6	dlist	m14.H1.sd.increase	.__C__Rcpp_stan_fit4model9165e8d5ee2_MATINGS___dpois_lambda_
