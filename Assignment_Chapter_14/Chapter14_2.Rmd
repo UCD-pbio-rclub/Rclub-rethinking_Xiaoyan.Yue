@@ -1,0 +1,170 @@
+---
+title: "Chapter_14_2"
+author: "Xiaoyan Yue"
+date: "3/1/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache= TRUE, autodep = TRUE)
+
+library(rethinking)
+library(reshape2)
+library(ggplot2)
+library(brms)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+##14E2
+Ti ~ Poisson(mu)  
+log(mu)= a + b*logP  
+logP ~ Normal (V_p,sigma_p)  
+V_p ~ Normal(0.5,1)  
+a ~ Normal(0,10)  
+b ~ Normal(0,1)  
+sigma_p ~ Cauchy(0,1)
+  
+##14M1 Using the mathematical form of the imputation model in the chapter, expalin what is being assumed about how the missing values were generated.  
+####It assumed that the missing value is generated completely at random.
+
+  
+##14M2
+###load the data
+```{r}
+data(milk)
+```
+
+###Repeat the model in Chapter 6
+```{r}
+#Remove NA 
+d1 <- milk[ complete.cases(milk) , ]
+d1$neocortex <- d1$neocortex.perc / 100
+dim(d1)
+a.start <- mean(d1$kcal.per.g)
+sigma.start <- log(sd(d1$kcal.per.g))
+#Fit different model
+m6.11 <- map(
+  alist(
+    kcal.per.g ~ dnorm( a , exp(log.sigma) )
+  ) ,
+  data=d1 , start=list(a=a.start,log.sigma=sigma.start) )
+m6.12 <- map(
+  alist(
+    kcal.per.g ~ dnorm( mu , exp(log.sigma) ) ,
+    mu <- a + bn*neocortex
+  ) ,
+  data=d1 , start=list(a=a.start,bn=0,log.sigma=sigma.start) )
+m6.13 <- map(
+  alist(
+    kcal.per.g ~ dnorm( mu , exp(log.sigma) ) ,
+    mu <- a + bm*log(mass)
+  ) ,
+  data=d1 , start=list(a=a.start,bm=0,log.sigma=sigma.start) )
+m6.14 <- map(
+  alist(
+    kcal.per.g ~ dnorm( mu , exp(log.sigma) ) ,
+    mu <- a + bn*neocortex + bm*log(mass)
+  ) ,
+  data=d1 , start=list(a=a.start,bn=0,bm=0,log.sigma=sigma.start) )
+
+#Compare the models
+(milk.models <- compare( m6.11 , m6.12 , m6.13 , m6.14 ))
+
+```
+  
+###Imputing neocortex
+```{r}
+#Load the data
+d2 <- milk
+d2$neocortex.prop <- d2$neocortex.perc / 100
+d2$logmass <- log(d2$mass)
+summary(d2)
+
+#Create the data list
+data_list <- list(
+  kcal = d2$kcal.per.g,
+  neocortex = d2$neocortex.prop,
+  logmass = d2$logmass )
+
+#Fit different models
+m14M2.1 <- map2stan(
+  alist(
+    kcal ~ dnorm( mu , sigma ),
+    mu <- a,
+    a ~ dnorm(0,100),
+    sigma ~ dcauchy(0,1)
+  ) ,
+  data=data_list , iter = 1e4, chains = 2 )
+
+m14M2.2 <- map2stan(
+  alist(
+    kcal ~ dnorm( mu , sigma ),
+    neocortex ~ dnorm(nu,sigma_N),
+    mu <- a + bN*neocortex,
+    a ~ dnorm(0,100),
+    bN ~ dnorm(0,10),
+    nu ~ dnorm(0.5,1),
+    sigma_N ~ dcauchy(0,1),
+    sigma ~ dcauchy(0,1)
+  ) ,
+  data=data_list , iter = 1e4, chains = 2 )
+
+m14M2.3 <- map2stan(
+  alist(
+    kcal ~ dnorm(mu,sigma),
+    mu <- a + bM*logmass,
+    a ~ dnorm(0,100),
+    bM ~ dnorm(0,10),
+    sigma ~ dcauchy(0,1)
+  ) ,
+  data=data_list , iter=1e4 , chains=2 )
+
+m14M2.4 <- map2stan(
+  alist(
+    kcal ~ dnorm(mu,sigma),
+    mu <- a + bN*neocortex + bM*logmass,
+    neocortex ~ dnorm(nu,sigma_N),
+    a ~ dnorm(0,100),
+    c(bN,bM) ~ dnorm(0,10),
+    nu ~ dnorm(0.5,1),
+    sigma_N ~ dcauchy(0,1),
+    sigma ~ dcauchy(0,1)
+  ) ,
+  data=data_list , iter=1e4 , chains=2 )
+#Compare the models
+(milk.models1 <- compare( m14M2.1 , m14M2.2 , m14M2.3 , m14M2.4 ))
+
+```
+  
+####It seems the weight of the model with imputation increased to 0.95 from 0.91 in the model excluded the missing data, and the standared error also decreased 
+  
+##14H3
+###create the data
+```{r}
+set.seed(100)
+x <- c(rnorm(10), NA)
+y <- c(rnorm(10,x),100)
+d <- list(x=x,y=y)
+```
+
+###Fit the model by imputing the one missing value for x
+```{r}
+m14H3.2 <- map2stan(
+  alist(
+    y ~ dnorm(mu,sigma),
+    mu <- a + bX*x,
+    x ~ dnorm(0,1),
+    a ~ dnorm(0,100),
+    bX ~ dnorm(0,100),
+    sigma ~ dcauchy(0,1)
+  ) ,
+  data=d , iter=1e4 , chains=2 )
+
+precis(m14H3.2)
+```
+####I think now it is not a strong positive relationship between two variables.The mean posterior of bX is 7.08, and the standared error is 25.74, almost half of the values are lower than 0. Because we defined a certain normal distribution for the missing value in x, it makes sampling bias. I think may be we need to specify the distribution of the missing value xi based on the relationships between x and y. 
+
