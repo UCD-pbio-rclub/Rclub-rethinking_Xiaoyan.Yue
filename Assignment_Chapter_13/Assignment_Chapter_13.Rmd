@@ -545,7 +545,7 @@ boxplot( list( 'm13.7'=neff_13.7 , 'm10.10stan'=neff_10.10stan, 'm10.10stan.c' =
 ###load the data
 ```{r}
 data(Oxboys)
-Oxboys
+d <- Oxboys
 
 str(Oxboys)
 summary(Oxboys)
@@ -581,3 +581,8 @@ dens( postH2$Rho[,1,2] )
 ```
   
 ### The correlation value is positive, so may be I would predict that in the same subject who was older that might have a taller height???
+```{r}
+d
+hist(d$age)
+```
+

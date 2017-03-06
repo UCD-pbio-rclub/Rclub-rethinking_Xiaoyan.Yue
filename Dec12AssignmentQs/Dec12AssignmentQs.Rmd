@@ -30,8 +30,6 @@ head(data)
 summary(data)
 str(data)
 
-#based on previous analysis, squrt transformed is better for the normalization
-data$totleng_log <- log2(data$totleng)
 #categorical variable for trt
 levels(data$trt)
 data$trt2 <- as.numeric(data$trt)-1 #0 = H, 1=L
@@ -39,22 +37,23 @@ data$trt2 <- as.numeric(data$trt)-1 #0 = H, 1=L
 #categorical variables for species
 #almost the same thing as the last step, set the dummy variable "species" into different column, which is really useful when you have a lot of species, you can not do it one by one
 data$index <- 1:nrow(data)
-data2 <- dcast(data,index + totleng_log + trt2 ~ species, value.var = "species",fun.aggregate = length)
+data2 <- dcast(data,index + totleng + trt2 ~ species, value.var = "species",fun.aggregate = length)
 
 #fix species names to get rid of space 
 colnames(data2) <- sub(". ","_",colnames(data2))
 head(data2)
+summary(data2)
 
 #set a model with a prior distribution using map2stan
 ##stan needs a "clear data", we must subset the data frame to contain only the relevant columns and get rid of the other variables
-data2.trt <- data2[,c("totleng_log","trt2")]
+data2.trt <- data2[,c("totleng","trt2")]
 
 #First, fit a model with totleng and trt
 #set the model for totleng and trt
 trt.stan <- map2stan(alist(
-  totleng_log ~ dnorm(mu,sigma),
+  totleng ~ dnorm(mu,sigma),
   mu <- a + bT * trt2,
-  a ~ dnorm(5.7,10),
+  a ~ dnorm(53.7,100),
   bT ~ dnorm(0,10),
   sigma ~ dunif(0,20)),
   data2.trt,
@@ -88,6 +87,7 @@ species.trt.stan <- map2stan(alist(
   data2.species.trt,
   chains = 4)
 
+plot(species.trt.stan)
 precis(species.trt.stan)
 par(mfrow=c(1,1),mfcol=c(1,1))
 plot(precis(species.trt.stan))
@@ -128,7 +128,7 @@ plot(precis(acs.stan))
 data3.shelf <- data3[,c(2:3,5:10)]
 shelf.stan <- map2stan(alist(
   totleng_log ~ dnorm(mu,sigma),
-  mu <- a + bT*trt2 + bChil*S_chilense + bChmi*S_chmielewskii + bHab*S_habrochaites + bPen * S_pennellii + bPer*S_peruvianum + a_shelf[shelf],
+  mu <- a + bT*trt2 + bChil*S_chilense + bChmi*S_chmielewskii + bHab*S_habrochaites + bPen * S_pennellii + bPer*S_peruvianum + a_shelf[shelf] ,
   a ~ dnorm(5.7,10),
   c(bT,bChil,bChmi,bHab,bPen,bPer) ~ dnorm(0,10),
   sigma ~ dunif(0,20),
@@ -143,7 +143,7 @@ plot(precis(shelf.stan))
 
 #fit a model including acs and shelf using adaptive priors
 data3.shelf <- data3[,c(2:3,5:10)]
-shelf.stan <- map2stan(alist(
+shelf.acs.stan <- map2stan(alist(
   totleng_log ~ dnorm(mu,sigma),
   mu <- a + bT*trt2 + bChil*S_chilense + bChmi*S_chmielewskii + bHab*S_habrochaites + bPen * S_pennellii + bPer*S_peruvianum + a_shelf[shelf] + a_acs[acs],
   a ~ dnorm(5.7,10),

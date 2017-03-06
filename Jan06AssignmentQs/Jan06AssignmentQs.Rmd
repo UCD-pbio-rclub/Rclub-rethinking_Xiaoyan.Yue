@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE, cache= TRUE, autodep = TRUE)
 
 library(rethinking)
 library(reshape2)
+library(ggplot2)
 library(brms)
 library(rstan)
 
@@ -55,7 +56,7 @@ pairs(mQ1.stan)
 
 summary(mQ1.stan)
 
-#Fit the model by brms, I'm confused by how to create the outcome variable, so I tried different ways
+#Fit the model by brms, when I was using trails, trails(application) didnot work, so I tried different ways
 
 #(in chapter10, 10.1.4, an aggregated binomial uses cbind to build the outcome variable)
 mQ1.brms1 <- brm(cbind(admit,reject) ~ 0 + dept + applicant_gender,#separate intercept for each dept
@@ -101,9 +102,21 @@ plot(hypothesis(mQ1.brms3,"admit_applicant_gendermale = 0"))
 hypothesis(mQ1.brms4,"applicant_gendermale = 0")
 plot(hypothesis(mQ1.brms4,"applicant_gendermale = 0"))
 
+#correst "trails" to "trials", it works well now
+mQ1.brms5 <- brm(admit | trials(applications) ~ 0 + dept + applicant.gender,
+                 family = "binomial",
+                 prior=set_prior("normal(0,10)", class="b"),
+                 data = d)
+summary(mQ1.brms5)
+#test the effect of gender:
+(hyp1 <- hypothesis(mQ1.brms5,"applicant.gendermale=0"))
+
+plot(hyp1)
+
 ```
 ###Q2:Refit models 12.1 and 12.2 (Rcode 12.2 and 12.3) with brms
 ```{r}
+#predictors should be factors
 data(reedfrogs)
 d2 <- reedfrogs
 
@@ -120,19 +133,13 @@ m12.1.stan <- map2stan(
 precis(m12.1.stan,depth = 2)
 
 #refit the model 12.1 with brms
-#(1)without interaction
-m12.1.brms1 <- brm(propsurv ~ pred + size,
-                prior=set_prior("normal(0,5)", class="b"),
-                data = d2)
-summary(m12.1.brms1)
-plot(m12.1.brms1,ask=FALSE)
-
-#(2)with
-m12.1.brms2 <- brm(propsurv ~ pred*size,
-                prior=set_prior("normal(0,5)", class="b"),
-                data = d2)
-summary(m12.1.brms2)
-plot(m12.1.brms2,ask=FALSE)
+m12.1.brm <- brm(surv | trials(density) ~ 0 + as.factor(tank),
+                 family = "binomial", 
+                 prior=set_prior("normal(0,5)", class="b"),
+                 data = d2)
+summary(m12.1.brm)
+#compare two models
+plot(coef(m12.1.stan),fixef(m12.1.brm), xlab="map2stan", ylab="brms",main= "compare coefficients")
 
 #fit model 12.2 with stan
 m12.2.stan <- map2stan(
@@ -143,30 +150,21 @@ m12.2.stan <- map2stan(
         a ~ dnorm(0,1) ,
         sigma ~ dcauchy(0,1)
     ), data=d2 , chains=4 )
-precis(m12.2.stan, depth = 2)
 
 #refit the model 12.2 with brms, by specifying different priors for specific coefficients
-#(1)without interaction
-m12.2.brms1 <- brm(propsurv ~ pred + size,
-                   data = d2,
-                   prior= c(
-                     set_prior("normal(0,1)", class="Intercept"),
-                     set_prior("normal(0,1)", class="b"),
-                     set_prior("cauchy(0,1)", class = "sigma")))
-summary(m12.2.brms1)
-plot(m12.2.brms1,ask=FALSE)
+m12.2.brm <- brm(surv | trials(density) ~ (1|tank),
+                 family="binomial",
+                 prior=c(
+                   set_prior("normal(0,1)", class="Intercept"),
+                   set_prior("cauchy(0,1)", class="sd")),
+                data = d2)
 
-#(2)with interaction
-m12.2.brms2 <- brm(propsurv ~ pred * size,
-                   data = d2,
-                   prior= c(
-                     set_prior("normal(0,1)", class="Intercept"),
-                     set_prior("normal(0,1)", class="b"),
-                     set_prior("cauchy(0,1)", class = "sigma")))
-summary(m12.2.brms2)
-plot(m12.2.brms2,ask=FALSE)
 #comparing models
-loo(m12.1.brms1,m12.1.brms2,m12.2.brms1,m12.2.brms2)
+precis(m12.2.stan, depth = 2)
+summary(m12.2.brm)
+
+plot(coef(m12.2.stan)[1:48],ranef(m12.2.brm)$tank+fixef(m12.2.brm)[,"mean"],xlab="map2stan",ylab="brms",main="compare coefficients")
+
 ```
 
 ###Q3:For the tomato data set, use both brms and map2stan to fit a model for intleng as a function of species, trt and their interaction, and include shelf as a random effect.
@@ -183,16 +181,13 @@ d3$shelf_id <- coerce_index(d3$shelf)
 
 d3.subset <- d3[,c("shelf_id","trt2","intleng","species_id")]
 
-head(d3.subset)
-summary(d3.subset)
 #fit the model
 mQ3.stan <- map2stan(
   alist(
     intleng ~ dnorm(mu,sigma),
-    mu <- a + a_shelf[shelf_id] + bs[species_id] + bt*trt2 + bst[species_id]*trt2,
-    a ~ dnorm(20,100),
+    mu <- a_species[species_id] + bt*trt2 + bst[species_id]*trt2 + a_shelf[shelf_id],
+    a_species[species_id] ~ dnorm(20,10),
     a_shelf[shelf_id] ~ dnorm(0,sigma_shelf),
-    bs[species_id] ~ dnorm(0,10),
     bt ~ dnorm(0,20),
     bst[species_id] ~ dnorm(0,10),
     sigma ~ dcauchy(0,1),
@@ -204,36 +199,105 @@ mQ3.stan <- map2stan(
   chains=4,
   cores=2
 )
-precis(mQ3.stan)
-pairs(mQ3.stan)
+summary(mQ3.stan)
+
+mQ3.stan.post <- extract.samples(mQ3.stan)
+
+sum(mQ3.stan.post$bt>0)/length(mQ3.stan.post$bt)
 
 #fit a model with brm
-#(1)without interaction
-mQ3.brms1 <- brm(intleng ~ 0 + species + trt + (1|shelf),
+#with interaction
+mQ3.brms <- brm(intleng ~ species * trt + (1|shelf),
+            data = d3,
+            prior = c(
+              set_prior("normal(20,10)",class = "Intercept"),#set prior for species
+              set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
+              set_prior("normal(0,20)",class="b", coef = "trtL"), #set prior for "trtL"
+              set_prior("cauchy(0,1)", class = "sigma"), #half cauchy prior for sigma
+              set_prior("normal(0,1)", class = "sd", group = "shelf") #prior for shelf
+            )
+)
+summary(mQ3.brms)
+plot(mQ3.brms)
+
+
+mQ3.brms1 <- brm(intleng ~ 0 + species * trt + (1|shelf),
             data = d3,
             prior = c(
               set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
-              set_prior("normal(0,5)",class="b", coef = "trtL"), #set prior for "trtL"
+              set_prior("normal(0,20)",class="b", coef = "trtL"), #set prior for "trtL"
               set_prior("cauchy(0,1)", class = "sigma"), #half cauchy prior for sigma
               set_prior("normal(0,1)", class = "sd", group = "shelf") #prior for shelf
             )
 )
 summary(mQ3.brms1)
-plot(mQ3.brms1)
 
-#(2)with interaction
-mQ3.brms2 <- brm(intleng ~ 0 + trt * species + (1|shelf),
-            data = d3,
+```
+
+##Trying to fit my own data
+```{r}
+d_own <- read.csv("/Users/xyyue/Documents/Phosphrous_project/Data_Jan6th/RSA_ILs")
+
+d_own
+#change the name of P-/P+
+d_own$type2 <- ifelse(d_own$type=="P-","P_limited","P_sufficient")
+d_own$sample <- sub("-","_",d_own$sample)
+
+summary(d_own)
+str(d_own)
+#plot the raw data
+#plot for primary root length
+p <- ggplot(data=d_own,aes(x=type2,y=length,color=type2)) 
+p <- p + geom_jitter()
+p <- p + stat_summary(fun.y="mean",geom="bar",alpha=0.5)
+p <- p + stat_summary(fun.data="calc.sem",geom="errorbar",position="dodge") 
+p <- p + facet_grid(.~sample)
+p <- p + labs(title="Primary Root Length")
+p
+
+#plot for number of later root
+p <- ggplot(data=d_own,aes(x=type2,y=n_child,color=type2)) 
+p <- p + geom_jitter()
+p <- p + stat_summary(fun.y="mean",geom="bar",alpha=0.5)
+p <- p + stat_summary(fun.data="calc.sem",geom="errorbar",position="dodge") 
+p <- p + facet_grid(.~sample)
+p <- p + labs(title="Number of Later Root")
+p
+
+
+#fit the model for primary root length
+m.brms <- brm(length ~ 0 + sample * type2 + (1|image),
+            data = d_own,
             prior = c(
               set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
-              set_prior("normal(0,5)",class="b", coef = "trtL"), #set prior for "trtL"
+              set_prior("normal(0,20)",class="b", coef = "type2P_sufficient"), #set prior for "typeP_sufficient"
               set_prior("cauchy(0,1)", class = "sigma"), #half cauchy prior for sigma
-              set_prior("normal(0,1)", class = "sd", group = "shelf") #prior for shelf
-            )
-)
-summary(mQ3.brms2)
-plot(mQ3.brms2)
+              set_prior("normal(0,1)", class = "sd", group = "image") #prior for plate
+            ))
 
-#compare the model
-loo(mQ3.brms1, mQ3.brms2)
+summary(m.brms)
+
+#test the effect of type of plate:
+(Primary_root_length <- hypothesis(m.brms,"type2P_sufficient=0"))
+
+#test the effect of type of plate for M82 only
+(Primary_root_lengthM82 <- hypothesis(m.brms,"sampleM82:type2P_sufficient=0"))
+
+#fit the model for number of later root
+m.brms2 <- brm(n_child ~ 0 + sample * type2 + (1|image),
+            data = d_own,
+            prior = c(
+              set_prior("normal(0,10)",class="b"), # sets prior for all b coefficients
+              set_prior("normal(0,20)",class="b", coef = "type2P_sufficient"), #set prior for "typeP_sufficient"
+              set_prior("cauchy(0,1)", class = "sigma"), #half cauchy prior for sigma
+              set_prior("normal(0,1)", class = "sd", group = "image") #prior for plate
+            ))
+
+summary(m.brms2)
+#test the effect of type of plate:
+(Primary_root_length <- hypothesis(m.brms2,"type2P_sufficient=0"))
+
+#test the effect of type of plate for M82 only
+(Primary_root_lengthM82 <- hypothesis(m.brms2,"sampleM82:type2P_sufficient=0"))
+
 ```

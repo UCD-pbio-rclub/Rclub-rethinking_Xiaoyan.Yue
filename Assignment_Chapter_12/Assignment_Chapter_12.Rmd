@@ -1,7 +1,7 @@
 ---
 title: "Assignment_Chapter_12"
 author: "XIAOYAN YUE"
-date: "2016Äê10ÔÂ27ÈÕ"
+date: "2016??10??27??"
 output: 
   html_document: 
     keep_md: yes
@@ -23,6 +23,8 @@ The prior for the a_group intercept is now a function of two parameters,a and si
 ##12M1
 ###Revisit the Reed frog survival data, data(reedfrogs), and add the predation and size treatment variables to the varying intercepts model. Consider models with either main effect alone, both main effects, as well as a model including both and their interaction. Instead of focusing on inferences about these two predictor variables, focus on the inferred variation across tanks. Explain why it changes as it does across models.
 ```{r}
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)#tell R to not re-knit code or plots that are unchanged from the last time that you knitted
+
 library(rethinking)
 
 data(reedfrogs)
@@ -37,6 +39,7 @@ d$tank <- 1:nrow(d)
 d$pred2 <- ifelse(d$pred=="no",0,1)
 d$size2 <- ifelse(d$size=="small",0,1)
 
+str(d)
 #fit the model with either main effect alone
 ##pred
 m12m.1.pred <- map2stan(
