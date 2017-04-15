@@ -2,6 +2,8 @@
 
 Name: Xiaoyan Yue
 
+#try it!!!
+
 ## 2E1
 (2) and (4)  **Pr(rain|Monday)and Pr(rain,Monday)/Pr(Monday)**
 
